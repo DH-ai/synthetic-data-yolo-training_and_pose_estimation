@@ -2,6 +2,8 @@
 
 This repository contains the pipeline for generating synthetic datasets for object detection and 6D pose estimation using BlenderProc, BOP format datasets, segmentation masks, and simulation-based domain randomization.
 
+It's a part of a larger robot automation project to follow please refer to (Fanuc Pick n Place)[https://github.com/dh-ai/fanuc_pickn_place]
+
 ## Features
 
 - Synthetic RGB image generation
