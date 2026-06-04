@@ -1,0 +1,115 @@
+# ===================================================
+# Python & Environments
+# ===================================================
+__pycache__/
+*.py[cod]
+*.class
+.Python
+env/
+venv/
+.venv/
+conda/
+.env
+
+# ===================================================
+# Jupyter Notebooks
+# ===================================================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# ===================================================
+# Deep Learning Weights & Exports
+# ===================================================
+# PyTorch / TensorFlow / ONNX / TensorRT
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.hdf5
+*.weight
+*.onnx
+*.engine
+*.trt
+*.pb
+weights/
+checkpoints/
+models/
+
+# ===================================================
+# Training Logs & Caches
+# ===================================================
+logs/
+tb_logs/
+tensorboard/
+wandb/
+lightning_logs/
+.cache/
+__pycache__/
+
+# ===================================================
+# Datasets & Data Processing
+# ===================================================
+# Common dataset folders
+data/
+datasets/
+bop_datasets/ # Standard for 6D pose (BOP Challenge)
+images/
+labels/
+annotations/
+train/
+val/
+test/
+
+# 3D Model / Mesh formats (FoundationPose / 6D Pose)
+*.ply
+*.obj
+*.stl
+*.pcd
+*.mtl
+
+# Video / Image / Raw Data files
+*.mp4
+*.avi
+*.jpg
+*.jpeg
+*.png
+*.npz
+*.npy
+
+# ===================================================
+# YOLO Specific
+# ===================================================
+runs/
+yolov5/
+yolov7/
+yolov8/
+ultralytics/
+
+# ===================================================
+# FoundationPose / Inference Outputs
+# ===================================================
+output/
+outputs/
+demo_results/
+debug/
+renderings/
+eval/
+
+# ===================================================
+# IDE & OS Specific
+# ===================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors (VS Code, PyCharm, Vim)
+.vscode/
+.idea/
+*.swp
+*.swo
