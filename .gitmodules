@@ -1,0 +1,6 @@
+[submodule "src/foundation_pose/FoundationPose"]
+	path = src/foundation_pose/FoundationPose
+	url = https://github.com/NVlabs/FoundationPose
+[submodule "src/foundation_pose/FoundationPose_manual_repo"]
+	path = src/foundation_pose/FoundationPose_manual_repo
+	url = https://github.com/030422Lee/FoundationPose_manual
