@@ -62,10 +62,10 @@ test/
 
 # 3D Model / Mesh formats (FoundationPose / 6D Pose)
 *.ply
-*.obj
+# *.obj
 *.stl
 *.pcd
-*.mtl
+# *.mtl
 
 # Video / Image / Raw Data files
 *.mp4
