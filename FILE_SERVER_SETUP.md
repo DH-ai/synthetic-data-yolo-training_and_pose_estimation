@@ -6,7 +6,13 @@ A simple Python-based file server for sharing large files (10GB+) between comput
 
 ### 1. Start the Server
 
+Point it at the directory you want to share (no need to edit the file):
+
 ```bash
+# Serve a specific directory on a specific port
+python file_server.py --dir /path/to/your/data --port 8000
+
+# Defaults: --dir ./data  --port 8000
 python file_server.py
 ```
 
@@ -14,24 +20,24 @@ The server will start on `http://0.0.0.0:8000` and show your local network IP.
 
 **Output example:**
 ```
-File Server running on http://0.0.0.0:8000
-Serving files from: /home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/data
-
-Access from another computer:
-  http://192.168.1.100:8000
+============================================================
+File Server Starting
+============================================================
+Serving files from: /home/dhruv/.../image_data_win
+Port: 8000
+Server listening on http://0.0.0.0:8000
+Access from another computer: http://192.168.137.15:8000
+============================================================
 ```
 
-### 2. Configure the Data Directory
+### 2. Choose the Data Directory
 
-Edit `file_server.py` and change this line to point to your data:
-```python
-SERVE_DIR = "./data"  # Change this path
+Pass `--dir` on the command line — for example, to share your Mech Eye camera data:
+```bash
+python file_server.py --dir /home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/image_data_win
 ```
 
-For example:
-```python
-SERVE_DIR = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation"
-```
+(You can still change the `SERVE_DIR` default at the top of `file_server.py` if you prefer.)
 
 ### 3. Transfer Files
 
@@ -65,12 +71,13 @@ Just navigate to `http://192.168.1.100:8000` to see a JSON listing of files.
 
 ## Features
 
-✅ **Large file support** - Handles 10GB+ files efficiently  
+✅ **Large file support** - Streams in 1MB chunks; 10GB+ files never load into RAM (verified)  
+✅ **Concurrent transfers** - Threaded server; a large download won't block other clients  
 ✅ **Streaming downloads** - Download starts immediately, progress tracking  
 ✅ **Streaming uploads** - Upload large files without loading into memory  
-✅ **Resume support** - Use curl with `-C -` flag for resumable downloads  
-✅ **Directory browsing** - See file listings as JSON  
-✅ **Security** - Path traversal protection built-in  
+✅ **Logging** - All requests/transfers logged to console and `file_server.log`  
+✅ **Directory browsing** - Browse subdirectories, see file listings as JSON  
+✅ **Security** - Path traversal protection built-in (returns 403)  
 ✅ **Cross-platform** - Works on Windows, macOS, Linux  
 
 ## Advanced Usage
@@ -94,16 +101,8 @@ python file_client.py download 192.168.1.100:8000 largefile.zip
 ```
 
 ### Change Server Port
-Edit `file_server.py`:
-```python
-PORT = 8000  # Change to your desired port
-```
-
-### Use on Different Network Interface
 ```bash
-# Server script will auto-detect, but you can manually specify:
-# Edit the socketserver call in file_server.py
-with socketserver.TCPServer(("192.168.1.100", PORT), FileServerHandler) as httpd:
+python file_server.py --port 9000
 ```
 
 ## Troubleshooting
