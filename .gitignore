@@ -59,6 +59,7 @@ annotations/
 train/
 val/
 test/
+*.pdf
 
 # 3D Model / Mesh formats (FoundationPose / 6D Pose)
 *.ply
@@ -66,6 +67,7 @@ test/
 *.stl
 *.pcd
 # *.mtl
+
 
 # Video / Image / Raw Data files
 *.mp4
@@ -76,6 +78,9 @@ test/
 *.npz
 *.npy
 *.tar
+*.tiff
+
+
 # ===================================================
 # YOLO Specific
 # ===================================================
@@ -96,17 +101,6 @@ renderings/
 eval/
 
 # ===================================================
-# IDE & OS Specific
-# ===================================================
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
 
 # Editors (VS Code, PyCharm, Vim)
 .vscode/
