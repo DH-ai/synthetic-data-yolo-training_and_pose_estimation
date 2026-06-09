@@ -79,7 +79,7 @@ test/
 *.npy
 *.tar
 *.tiff
-
+hdri_hugin/  # this is folder where I made HDRI 
 
 # ===================================================
 # YOLO Specific
