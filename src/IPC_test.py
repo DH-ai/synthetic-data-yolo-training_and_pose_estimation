@@ -14,31 +14,33 @@ Symmetry:
 
 import numpy as np
 import open3d as o3d
+
 import cv2
 import copy
 from pathlib import Path
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIG  —  fill these in
+#   Importal Values
+#   2D Image: 1920 x 1200
+#   ROI 2d to PCD (0,97), (1920, 1050) 
 # ─────────────────────────────────────────────────────────────────────────────
 CAD_PATH        = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/models/heart_shape.obj"      # .stl / .obj / .ply
-SCENE_PCD_PATH  = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/image_data_win/image_set/point_cloud_20260605_154148_725.ply"       # point cloud from your scanner
-SCENE_IMG_PATH  = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/image_data_win/image_set/rgb_20260605_154148_725.png"        # RGB image corresponding to the scan
+SCENE_PCD_PATH  = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/test_ref_frame_cam/point_cloud_20260610_200731_521.ply"
+SCENE_IMG_PATH  = "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/test_ref_frame_cam/rgb_image_20260610_200731_521.png"
+# ROI x and y of the Image 
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y 
 
+SCENE_ROI_MIN = Point(0, 97) # Image
+SCENE_ROI_MAX = Point(1920, 1050) # Image
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ICP params  (units = same as your point cloud — usually mm)
+VOXEL_SIZE = 2.0          # downsample voxel size
+ICP_MAX_ITER = 100
+AXIS_DRAW_LEN = None       # None → auto (30% of longest bbox edge)
 
 # Camera intrinsics  (get from your scanner SDK / calibration)
 K = np.array([[1727.4641025602748,    0.0, 655.82],
@@ -46,6 +48,9 @@ K = np.array([[1727.4641025602748,    0.0, 655.82],
               [   0.0,    0.0,   1.0]], dtype=np.float64)
 DIST = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
+# ── Two-scale voxel sizes ─────────────────────────────────────────────────────
+VOXEL_COARSE = 5.0    # for RANSAC global reg  (fast, approximate)
+VOXEL_FINE   = 1.0    # for ICP refinement     (slow, accurate)
 
 
 
@@ -58,13 +63,7 @@ DIST = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
 
 
-
-
-# ICP params  (units = same as your point cloud — usually mm)
-VOXEL_SIZE = 2.0          # downsample voxel size
-ICP_MAX_ITER = 100
-AXIS_DRAW_LEN = None       # None → auto (30% of longest bbox edge)
-
+#
 
 
 
@@ -97,11 +96,60 @@ def load_cad_as_pcd(path: str, n_points: int = 30_000):
 # ─────────────────────────────────────────────────────────────────────────────
 # 2.  LOAD SCENE POINT CLOUD
 # ─────────────────────────────────────────────────────────────────────────────
-def load_scene_pcd(path: str) -> o3d.geometry.PointCloud:
-    pcd = o3d.io.read_point_cloud(path)
-    print(f"[Scene] {len(pcd.points):,} pts")
-    return pcd
 
+
+## Error 1.1
+# python src/IPC_test.py
+# [CAD]  30,000 pts | extent (WÃDÃH): [31.03 35.22 24.02]
+# [Scene] 2,304,000 pts  |  extent: [nan nan nan]
+#     â³ 1,174 pts after voxel=2.0 downsample  |  extent: [30.93 35.17 24.02]
+#     â³ 1 pts after voxel=2.0 downsample  |  extent: [nan nan nan]
+# Traceback (most recent call last):
+#   File "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/src/IPC_test.py", line 368, in <module>
+#     main()
+#   File "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/src/IPC_test.py", line 344, in main
+#     scene_d, scene_f = preprocess(scene_pcd, VOXEL_SIZE)
+#                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/src/IPC_test.py", line 123, in preprocess
+#     raise ValueError(
+# ValueError: Only 1 pts after downsampling â almost certainly a unit mismatch.
+# CAD extent is ~[31,35,24] (mm). If scene is in metres, set VOXEL_SIZE=0.002
+
+
+
+
+
+
+def load_scene_pcd(path: str, scale: float = 1.0    ) -> o3d.geometry.PointCloud:
+    # pcd = o3d.io.read_point_cloud(path)
+    # print(f"[Scene] {len(pcd.points):,} pts")
+    # return pcd
+    pcd = o3d.io.read_point_cloud(path)
+    n_raw = len(pcd.points)
+    
+    
+    
+    # ── Strip NaN / Inf (Mech-Eye outputs these for invalid depth pixels) ──── workaround ERORR 1.1, NaN coordinates baked in by camera
+    try:
+        # Open3D >= 0.13
+        pcd.remove_non_finite_points(remove_nan=True, remove_infinite=True)
+    except AttributeError:
+        # Fallback for older Open3D
+        pts = np.asarray(pcd.points)
+        valid = np.isfinite(pts).all(axis=1)
+        pcd = pcd.select_by_index(np.where(valid)[0])
+
+    n_clean = len(pcd.points)
+    print(f"[Scene] {n_raw:,} raw  →  {n_clean:,} finite pts  "
+          f"({n_raw - n_clean:,} NaN removed)")
+
+
+
+    if scale != 1.0:
+        pcd.scale(scale, center=pcd.get_center())
+    print(f"[Scene] {len(pcd.points):,} pts  |  "
+          f"extent: {np.round(np.asarray(pcd.get_axis_aligned_bounding_box().get_extent()), 2)}")
+    return pcd
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3.  PREPROCESS  →  downsample + normals + FPFH
@@ -162,7 +210,8 @@ def preprocess(pcd: o3d.geometry.PointCloud, voxel: float):
 # ─────────────────────────────────────────────────────────────────────────────
 def global_reg(src_d, src_f, tgt_d, tgt_f, voxel: float):
     dist_thr = voxel * 1.5
-    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+    # o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength.set_default(0.9)  # global default
+    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching( 
         src_d, tgt_d, src_f, tgt_f,
         mutual_filter=True,
         max_correspondence_distance=dist_thr,
@@ -172,7 +221,9 @@ def global_reg(src_d, src_f, tgt_d, tgt_f, voxel: float):
             o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
             o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(dist_thr),
         ],
-        criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4_000_000, 500),
+        # criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4_000_000, 500),
+        criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(100_000, 500),
+
     )
     print(f"[GlobalReg] fitness={result.fitness:.4f}  rmse={result.inlier_rmse:.4f}")
     return result.transformation
@@ -235,12 +286,12 @@ def run_symmetric_icp(cad_pcd, scene_pcd, coarse_T, bbox_extent, voxel):
     print("[Solution B (symmetric)]")
     res_b = icp(cad_pcd, scene_pcd, T_alt, max_dist)
 
-    if res_a.fitness >= res_b.fitness:
-        print("[Symmetry] → Solution A wins")
-        return res_a.transformation, res_b.transformation, "A"
-    else:
-        print("[Symmetry] → Solution B wins")
-        return res_b.transformation, res_a.transformation, "B"
+    # if res_a.fitness >= res_b.fitness:
+    #     print("[Symmetry] → Solution A wins")
+    #     return res_a.transformation, res_b.transformation, "A"
+    # else:
+    #     print("[Symmetry] → Solution B wins")
+    return res_b.transformation, res_a.transformation, "B"
 
     # NOTE: for a perfectly symmetric flat-top object, res_a.fitness ≈ res_b.fitness
     # — see disambiguation notes at the bottom of this file.
@@ -249,12 +300,16 @@ def run_symmetric_icp(cad_pcd, scene_pcd, coarse_T, bbox_extent, voxel):
 # ─────────────────────────────────────────────────────────────────────────────
 # 8.  OPENCV VISUALIZATION
 # ─────────────────────────────────────────────────────────────────────────────
-def project(pts_3d: np.ndarray, T: np.ndarray, K, dist):
-    """Project Nx3 points using pose T (obj→cam frame) through camera K."""
+def project(pts_3d: np.ndarray, T: np.ndarray, K, dist,dx=0, dy=0 ):
+    """
+    Project Nx3 points using pose T (obj→cam frame) through camera K.
+    dx, dy: optional pixel translation added after projection.
+    """
     R = T[:3, :3];  t = T[:3, 3]
     rvec, _ = cv2.Rodrigues(R)
     tvec    = t.reshape(3, 1)
     pts2d, _ = cv2.projectPoints(pts_3d.astype(np.float32), rvec, tvec, K, dist)
+    pts2d = pts2d.reshape(-1, 2) + np.array([dx, dy])  # apply optional translation
     return pts2d.reshape(-1, 2).astype(int)
 
 
@@ -287,12 +342,17 @@ def draw_bbox_3d(img, T, K, dist, extent):
     ])
     p = project(corners, T, K, dist)
 
-    edges = [(0,1),(1,2),(2,3),(3,0),    # bottom ring
+    edges = [(0*199,1),(1,2),(2,3),(3,0),    # bottom ring
              (4,5),(5,6),(6,7),(7,4),    # top ring
              (0,4),(1,5),(2,6),(3,7)]    # verticals
-
+    # edges = [(a, b) for a, b in edges if not (a == b)]  # remove self-edges
+    # edges = [(a, b) for a, b in edges if np.linalg.norm(p[a] - p[b]) > 0]  # remove zero-length edges
+    # edges =/ [(a, b) for a, b in edges if np.linalg.norm(p[a] - p[b]) < 1000.0]  # convert from mm to metres for better visualization (thinner lines)
+    # edges =np.array(edges)  # convert to numpy array for vectorized operations
+    # edges = edges*np.full(edges.shape, dtype=np.float32, fill_value=0.001)
     for a, b in edges:
         cv2.line(img, tuple(p[a]), tuple(p[b]), (0, 220, 255), 1, cv2.LINE_AA)
+        print(f"({p[a]},{[b]}):")
 
     return img
 
@@ -328,22 +388,133 @@ def visualize_pose(img_path, T_best, T_alt, K, dist, extent, label="A"):
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
+
+def boundingBox(scene_pcd) :
+    """
+        returns: (x, y, w, h) of the selected bounding box in the image
+    """
+    img = cv2.imread(SCENE_IMG_PATH)
+    if img is None:
+        raise FileNotFoundError(f"Could not load image, image shape: {img.shape if img is not None else 'Unknown'}")
+    
+    roi = (SCENE_ROI_MIN.x, SCENE_ROI_MIN.y, SCENE_ROI_MAX.x,SCENE_ROI_MAX.y  )   # (x_min, y_min, x_max, y_max)
+    cv2.rectangle(img, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 0), 2)  
+    # img = cv2.imread(SCENE_IMG_PATH)
+    pts_2d = project(np.asarray(scene_pcd.points), np.eye(5), K, DIST, 300, 80)
+    for uv in pts_2d:
+        cv2.circle(img, tuple(uv), 1, (0,255,0), thickness=1)
+    # cv2.imshow("Projected points", img)
+    # cv2.waitKey(0)
+
+    bbox = cv2.selectROI("Select ROI", img, fromCenter=False, showCrosshair=True)
+    cv2.destroyAllWindows()
+    print(f"Selected ROI: {bbox}")
+    return bbox
+
+
+
+
+## 
+
+# Projects every 3D point from the scene onto the RGB image using the camera intrinsics.
+# Keeps only points whose projected (u,v) fall inside the selected 2D ROI.
+
+def crop_pcd_by_roi(pcd: o3d.geometry.PointCloud, roi_xywh, K, dist_coeffs=np.zeros(4)):
+    """
+    roi_xywh = (x, y, w, h)  from cv2.selectROI
+    Returns a new point cloud containing only points that project into that rectangle.
+    """
+    pts = np.asarray(pcd.points)
+    if len(pts) == 0:
+        return pcd
+
+    # Project all 3D points onto the image
+    rvec = np.zeros(3)          # no rotation, points are already in camera frame
+    tvec = np.zeros(3)          # no translation
+    img_pts, _ = cv2.projectPoints(pts.astype(np.float32),
+                                   rvec, tvec, K, dist_coeffs)
+    uv = img_pts.reshape(-1, 2).astype(int)
+
+    x, y, w, h = roi_xywh
+    mask = (uv[:, 0] >= x) & (uv[:, 0] < x + w) & \
+           (uv[:, 1] >= y) & (uv[:, 1] < y + h)
+
+    cropped = o3d.geometry.PointCloud()
+    cropped.points = o3d.utility.Vector3dVector(pts[mask])
+    if pcd.has_normals():
+        cropped.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[mask])
+    return cropped
+
+
+
+
+
+
+
 def main():
     # Load
-    cad_pcd, _bl_off, extent = load_cad_as_pcd(CAD_PATH)
-    scene_pcd = load_scene_pcd(SCENE_PCD_PATH)
 
-    # Preprocess
-    cad_d,   cad_f   = preprocess(cad_pcd,   VOXEL_SIZE)
-    scene_d, scene_f = preprocess(scene_pcd, VOXEL_SIZE)
+    ## T_table→cam
+    #   T_table_to_cam = np.eye(4, dtype=np.float64)
+    #   T_table_to_cam[0, 3] =  227.5   # X translation
+    #   T_table_to_cam[1, 3] =  407.55   # Y translation
+    #   T_table_to_cam[2, 3] = -965.0    # Z translation
+    cad_pcd, _bl_off, extent = load_cad_as_pcd(CAD_PATH)
+    # scene_pcd = load_scene_pcd(SCENE_PCD_PATH)
+
+
+
+    scene_pcd = load_scene_pcd(SCENE_PCD_PATH, scale=1.4)   # metres → mm
+    # scene_pcd.transform(T_table_to_cam)
+    pts = np.asarray(scene_pcd.points)  
+    print(f"Z range: {np.min(pts[:,2]):.2f} to {np.max(pts[:,2]):.2f} (meters before scaling)")
+
+    bbox = boundingBox(scene_pcd)
+
+    # exit()
+    # img = cv2.imread(SCENE_IMG_PATH)
+    # cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0] + bbox[2], bbox[1] + bbox[3]), (0, 255, 0), 2)
+    # cv2.imshow("ROI Selection", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    # exit()
+
+    # ── Crop scene to object ROI 
+    # roi = o3d.geometry.AxisAlignedBoundingBox(
+    #     min_bound=np.array([bbox[0], bbox[1], -2000]),  # (x_min, y_min, z_min)
+    #     max_bound=np.array([bbox[0] + bbox[2], bbox[1] + bbox[3], 2000])  # (x_max, y_max, z_max)
+    # )
+    # scene_pcd = scene_pcd.crop(roi)
+
+    # ── Crop scene using projection and the selected ROI
+    scene_pcd = crop_pcd_by_roi(scene_pcd, bbox, K, DIST)
+    print(f"[Crop]  {len(scene_pcd.points):,} pts remain in ROI")
+
+
+    import time
+    t0 = time.time()
+
+    # preprocess
+    cad_c, cad_fc     = preprocess(cad_pcd,   VOXEL_COARSE)
+    scene_c, scene_fc = preprocess(scene_pcd, VOXEL_COARSE)
 
     # Coarse alignment
-    coarse_T = global_reg(cad_d, cad_f, scene_d, scene_f, VOXEL_SIZE)
+
+    coarse_T = global_reg(cad_c, cad_fc, scene_c, scene_fc, VOXEL_COARSE)
+    print(f"[Timing] RANSAC: {time.time()-t0:.2f}s")
+
+    # ── Fine: ICP on dense clouds 
+    t0 = time.time()
+    cad_f, _     = preprocess(cad_pcd,   VOXEL_FINE)
+    scene_f, _   = preprocess(scene_pcd, VOXEL_FINE)
 
     # ICP with symmetry
+
     T_best, T_alt, which = run_symmetric_icp(
-        cad_pcd, scene_pcd, coarse_T, extent, VOXEL_SIZE
+        cad_f, scene_f, coarse_T, extent, VOXEL_FINE
     )
+    print(f"[Timing] ICP: {time.time()-t0:.2f}s")
+
 
     print("\n── Final Pose  T_cam_obj (CAD frame → Camera frame) ──")
     print(np.round(T_best, 4))
