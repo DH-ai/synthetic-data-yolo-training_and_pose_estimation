@@ -11,11 +11,18 @@ venv/
 conda/
 .env
 .venv_v12/
-# ===================================================
-# Jupyter Notebooks
-# ===================================================
-.ipynb_checkpoints/
-*/.ipynb_checkpoints/
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ===================================================
 # Deep Learning Weights & Exports
@@ -35,6 +42,22 @@ weights/
 checkpoints/
 models/
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ===================================================
 # Training Logs & Caches
 # ===================================================
@@ -45,6 +68,10 @@ wandb/
 lightning_logs/
 .cache/
 __pycache__/
+
+
+
+
 
 # ===================================================
 # Datasets & Data Processing
@@ -61,12 +88,17 @@ val/
 test/
 *.pdf
 
+
+
+
 # 3D Model / Mesh formats (FoundationPose / 6D Pose)
 *.ply
 # *.obj
 *.stl
 *.pcd
 # *.mtl
+
+
 
 
 # Video / Image / Raw Data files
@@ -81,6 +113,9 @@ test/
 *.tiff
 hdri_hugin/  # this is folder where I made HDRI 
 
+
+
+
 # ===================================================
 # YOLO Specific
 # ===================================================
@@ -89,6 +124,9 @@ yolov5/
 yolov7/
 yolov8/
 ultralytics/
+
+
+
 
 # ===================================================
 # FoundationPose / Inference Outputs
@@ -100,6 +138,9 @@ debug/
 renderings/
 eval/
 
+
+
+
 # ===================================================
 
 # Editors (VS Code, PyCharm, Vim)
@@ -108,3 +149,8 @@ eval/
 *.swp
 *.swo
 
+
+# ===================================================
+
+# Miscellaneous
+_untracked_blenderProc_source/

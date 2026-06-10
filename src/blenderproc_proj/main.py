@@ -6,8 +6,8 @@ bproc.init()
 
 # ASSET = os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimaDE
 # Load objects
-objs = bproc.loader.load_obj(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files","Scene2.obj"))
-# scene = bproc.loader.load_blend(os.path.join( "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation","blender_files","Scene2.blend"))
+# objs = bproc.loader.load_obj(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files","Scene2.ob"))
+scene = bproc.loader.load_blend(os.path.join( "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation","blender_files","scene_prototype.blend"))
     # /home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/Scene2.obj
 # Add lightB
 # light = bproc.types.Light()
@@ -24,6 +24,8 @@ objs = bproc.loader.load_obj(os.path.join("/home/dhruv/obscureP/synthetic-data-y
 # data = bproc.renderer.render()
 
 # Write annotations
+
+
 # bproc.writer.write_hdf5(os.path.join(OUTPUTPATH, "annotations.hdf5"), data)
 # bproc.writer.write_coco_annotations(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation", "assets", "annotations.json"), data)
  
