@@ -286,11 +286,11 @@ def run_symmetric_icp(cad_pcd, scene_pcd, coarse_T, bbox_extent, voxel):
     print("[Solution B (symmetric)]")
     res_b = icp(cad_pcd, scene_pcd, T_alt, max_dist)
 
-    # if res_a.fitness >= res_b.fitness:
-    #     print("[Symmetry] → Solution A wins")
-    #     return res_a.transformation, res_b.transformation, "A"
-    # else:
-    #     print("[Symmetry] → Solution B wins")
+    if res_a.fitness >= res_b.fitness:
+        print("[Symmetry] → Solution A wins")
+        return res_a.transformation, res_b.transformation, "A"
+    else:
+        print("[Symmetry] → Solution B wins")
     return res_b.transformation, res_a.transformation, "B"
 
     # NOTE: for a perfectly symmetric flat-top object, res_a.fitness ≈ res_b.fitness
@@ -300,7 +300,7 @@ def run_symmetric_icp(cad_pcd, scene_pcd, coarse_T, bbox_extent, voxel):
 # ─────────────────────────────────────────────────────────────────────────────
 # 8.  OPENCV VISUALIZATION
 # ─────────────────────────────────────────────────────────────────────────────
-def project(pts_3d: np.ndarray, T: np.ndarray, K, dist,dx=0, dy=0 ):
+def project(pts_3d: np.ndarray, T: np.ndarray, K, dist,dx=0, dy=0 , S=1):
     """
     Project Nx3 points using pose T (obj→cam frame) through camera K.
     dx, dy: optional pixel translation added after projection.
@@ -310,6 +310,7 @@ def project(pts_3d: np.ndarray, T: np.ndarray, K, dist,dx=0, dy=0 ):
     tvec    = t.reshape(3, 1)
     pts2d, _ = cv2.projectPoints(pts_3d.astype(np.float32), rvec, tvec, K, dist)
     pts2d = pts2d.reshape(-1, 2) + np.array([dx, dy])  # apply optional translation
+    pts2d = pts2d * S  # apply optional scaling
     return pts2d.reshape(-1, 2).astype(int)
 
 
@@ -319,7 +320,7 @@ def draw_axes(img, T, K, dist, length):
                         [length, 0, 0],       # +X  red
                         [0, length, 0],       # +Y  green
                         [0, 0, length]])      # +Z  blue
-    p = project(pts3d, T, K, dist)
+    p = project(pts3d, T, K, dist,S=0.001)
     o, px, py, pz = p
 
     img = cv2.arrowedLine(img, tuple(o), tuple(px), (0,   0, 255), 2, tipLength=0.25)
@@ -335,14 +336,15 @@ def draw_bbox_3d(img, T, K, dist, extent):
     """Project and draw the full 3D bounding box of the object."""
     W, D, H = extent
 
+    
     # 8 corners: origin = BL corner = (0,0,0) in CAD frame
     corners = np.float32([
         [0, 0, 0], [W, 0, 0], [W, D, 0], [0, D, 0],  # bottom face
         [0, 0, H], [W, 0, H], [W, D, H], [0, D, H],  # top face
     ])
-    p = project(corners, T, K, dist)
+    p = project(corners, T, K, dist, S=0.001)  # scale down for better visualization
 
-    edges = [(0*199,1),(1,2),(2,3),(3,0),    # bottom ring
+    edges = [(0,1),(1,2),(2,3),(3,0),    # bottom ring
              (4,5),(5,6),(6,7),(7,4),    # top ring
              (0,4),(1,5),(2,6),(3,7)]    # verticals
     # edges = [(a, b) for a, b in edges if not (a == b)]  # remove self-edges
