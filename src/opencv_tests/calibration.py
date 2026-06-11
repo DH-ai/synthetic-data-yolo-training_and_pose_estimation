@@ -70,10 +70,27 @@ if charucoBoard:
         camera_matrix = np.eye(3, dtype=np.float32)
         dist_coeffs = np.zeros((5, 1), dtype=np.float32)
 
-        # Run the calibration
-        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
-            all_charuco_corners, all_charuco_ids, board, image_size, camera_matrix, dist_coeffs
+        # # Run the calibration , works in the older version of open cv not int new
+        # ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
+        #     all_charuco_corners, all_charuco_ids, board, image_size, camera_matrix, dist_coeffs
+        # )
+
+        objpoints = []
+        imgpoints = []
+
+        # Iterate through all detected frames
+        for corners, ids in zip(all_charuco_corners, all_charuco_ids):
+            # Get object (3D) and image (2D) points for the ChArUco corners
+            obj_points, img_points = board.matchImagePoints(corners, ids)
+            if obj_points is not None and img_points is not None:
+                objpoints.append(obj_points)
+                imgpoints.append(img_points)
+    
+        # Perform calibration using the standard OpenCV function
+        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+            objpoints, imgpoints, image_size, None, None
         )
+
 
         if ret:
             print("\nCalibration successful!")
