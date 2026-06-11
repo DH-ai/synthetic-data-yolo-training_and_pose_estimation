@@ -64,58 +64,71 @@ def draw_axis(img, rvec, tvec, K, dist, length=3.0):
     return img
 
 
-path = os.path.join(os.path.dirname(__file__), "media/charuco_pose.png")
-print(f"Loading test image from: {path}")
-img = cv2.imread(path)  # Load your test image here
+def process_frame(img,draw_rectangle:bool=False):
+    charuco_corners, charuco_ids, marker_corners, marker_ids = detector.detectBoard(img)
 
-if img is None:
-    raise FileNotFoundError("Could not load image, check path and filename")
+    if charuco_corners is not None and charuco_ids is not None and len(charuco_ids) > 3:
+        obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids)
+        success, rvec, tvec = cv2.solvePnP(obj_points, img_points, K, dist)
 
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-# Detect ArUco markers
-# corners, ids, rejected = detector.detectMarkers(img) # for regular ArUco
+        if success:
+            cv2.drawFrameAxes(img, K, dist, rvec, tvec, 0.1)
+            
+            print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
+        if draw_rectangle:
+            # Draw a rectangle around the detected board
+            img = cv2.polylines(img, [marker_corners.astype(int)], isClosed=True, color=(255,0,255), thickness=2)
 
-
-charuco_corners, charuco_ids, marker_corners, marker_ids = detector.detectBoard(img)
-
-if charuco_corners is not None and charuco_ids is not None and len(charuco_ids) > 3:
-    # Estimate pose
-    # `cv2.aruco.estimatePoseCharucoBoard` is still the function used internally.
-    # Deprecated in  modern API
-    # ret, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(
-    #     charuco_corners, charuco_ids, board, K, dist, None, None)
-    obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids)
-    success, rvec, tvec = cv2.solvePnP(obj_points, img_points, K, dist)
-
-    
-
-    
-    if success:
-        # img = draw_axis(img, rvec, tvec, K, dist)
-        cv2.drawFrameAxes(img, K, dist, rvec, tvec, 0.1)
-        print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
+    return img
 
 
+def run_image(image_path=None):
+    if image_path is None:
+        image_path = os.path.join(os.path.dirname(__file__), "media/charuco_pose.png")
 
-# if ids is not None:
+    print(f"Loading test image from: {image_path}")
+    img = cv2.imread(image_path)
 
-#     # Estimate pose for each marker
-    # rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, MARKER_LEN, K, dist)
-    
-#     for i in range(len(ids)):
-#         # Draw detected marker outline
-#         cv2.aruco.drawDetectedMarkers(img, corners, ids)
-        
-#         # Draw 3D axis
-#         img = draw_axis(img, rvecs[i], tvecs[i], K, dist, length=MARKER_LEN*0.8)
-        
-#         # Print rotation vector (Rodrigues) and translation vector
-#         print(f"ID {ids[i][0]}:")
-#         print(f"  rvec = {rvecs[i].flatten()}")
-#         print(f"  tvec = {tvecs[i].flatten()} (units = marker length units)")
+    if img is None:
+        raise FileNotFoundError("Could not load image, check path and filename")
 
-cv2.imshow("ArUco Pose Estimation", img)
-cv2.waitKey(0)
+    img = process_frame(img)
+    cv2.imshow("ArUco Pose Estimation", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
-cv2.destroyAllWindows()
+def run_webcam(camera_index=0):
+    cap = cv2.VideoCapture(camera_index)
+    if not cap.isOpened():
+        raise RuntimeError(f"Could not open webcam at index {camera_index}")
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame = process_frame(frame)
+            cv2.imshow("ArUco Pose Estimation", frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="ChArUco pose estimation demo")
+    parser.add_argument("--webcam", action="store_true", help="Use live webcam feed")
+    parser.add_argument("--image", type=str, default=None, help="Path to an input image")
+    parser.add_argument("--camera-index", type=int, default=0, help="Webcam index")
+    args = parser.parse_args()
+
+    if args.webcam:
+        run_webcam(args.camera_index)
+    else:
+        run_image(args.image)
