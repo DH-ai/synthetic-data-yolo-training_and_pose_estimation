@@ -4,6 +4,7 @@ import numpy as np
 
 
 checkboard = False
+mecheye = False # brute method of chaing K and dist 
 if checkboard:
 
     ## Testing K and dist from the checkboard test 
@@ -12,13 +13,20 @@ if checkboard:
                 [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float64)
     dist =   np.array([[ 2.03276531e-01, -3.47445013e+00,  6.88249751e-03,  1.74410119e-02,
     3.35986406e+01]])    
-else:
+elif mecheye:
     # K and dist: from mech eye sdk getting transformation vector at around 99.7 cm witch 2cm error, which is pretty good for our use case.
     K = np.array([[2430.38, 0.0, 969.89],
             [0.0, 2431.72, 619.58],
             [0.0, 0.0, 1.0]],dtype=np.float64)
     dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
+else: # values for charuca calibration
+    K = np.array([[2481.9412514178307, 0.0, 978.95936559694314],
+            [0.0, 2482.3917472975795, 629.72289542481894],
+            [0.0, 0.0, 1.0]],dtype=np.float64)
 
+    dist =   np.array([[ -0.091539129459748417, 1.6518788910916924,
+       -0.00096826424151305102, -0.0023115236516727399,
+       -7.1086932137755738]]) 
 
 # ArUco setup
 ARUCO_DICT = cv2.aruco.DICT_6X6_250
@@ -89,7 +97,7 @@ def process_frame(img,draw_rectangle:bool=False):
 
 def run_image(image_path=None):
     if image_path is None:
-        image_path = os.path.join(os.path.dirname(__file__), "media/charuco_pose.png")
+        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_201258_263.png")
 
     print(f"Loading test image from: {image_path}")
     img = cv2.imread(image_path)
