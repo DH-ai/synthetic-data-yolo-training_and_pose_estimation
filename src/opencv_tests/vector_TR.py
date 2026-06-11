@@ -3,18 +3,30 @@ import cv2
 import numpy as np
 
 
-# K and dist: from mech eye sdk
-K = np.array([[2430.38, 0.0, 969.89],
-            [0.0, 2431.72, 619.58],
-            [0.0, 0.0, 1.0]],dtype=np.float64)
-dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
+checkboard = False
+
+if checkboard:
+
+    ## Testing K and dist from the checkboard test 
+    K = np.array([[2.87094566e+03, 0.00000000e+00, 1.04248232e+03],
+                [0.00000000e+00, 2.88403367e+03, 7.04362990e+02],
+                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float64)
+    dist =   np.array([[ 2.03276531e-01, -3.47445013e+00,  6.88249751e-03,  1.74410119e-02,
+    3.35986406e+01]])    
+else:
+    # K and dist: from mech eye sdk
+    K = np.array([[2.45038e+03, 0.0, 969.89],
+                [0.0, 2.43172e+03, 619.58],
+                [0.0, 0.0, 1.0]], dtype=np.float64)
+    dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
+
 
 # ArUco setup
 ARUCO_DICT = cv2.aruco.DICT_6X6_250
 SQUARES_VERTICALLY = 7
 SQUARES_HORIZONTALLY = 5
-SQUARE_LENGTH = 0.03
-MARKER_LENGTH = 0.015
+SQUARE_LENGTH = 0.022
+MARKER_LENGTH = 0.011
 
 
 
@@ -26,7 +38,7 @@ board = cv2.aruco.CharucoBoard((SQUARES_VERTICALLY, SQUARES_HORIZONTALLY),
 detector = cv2.aruco.CharucoDetector(board)
 
 # Real marker side length (in same units as translation results, e.g. cm)
-MARKER_LEN = 5.0   # 5 cm
+# MARKER_LEN = 50.0   # 5 cm
 
 
 
