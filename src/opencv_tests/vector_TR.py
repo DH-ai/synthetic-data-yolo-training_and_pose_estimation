@@ -1,19 +1,17 @@
 import cv2
 import numpy as np
 
-# ---------------------------
-# 1. Camera calibration data (replace with your own!)
-# ---------------------------
+#Camera calibration data (replace with your own!)
 
-K = np.array([[640, 0, 320],
-              [0, 480, 240],
-              [0, 0, 1]], dtype=np.float32)
-dist = np.zeros((4,1))  # no distortion as example
+# K and dist: from mech eye sdk
+K = np.array([[2430.38, 0.0, 969.89],
+            [0.0, 2431.72, 619.58],
+            [0.0, 0.0, 1.0]],dtype=np.float64)
+dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
-# ---------------------------
-# 2. ArUco setup
-# ---------------------------
+# ArUco setup
 ARUCO_DICT = cv2.aruco.DICT_6X6_250
+cv2.aruco.Charuc
 aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
 parameters = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
@@ -21,9 +19,12 @@ detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
 # Real marker side length (in same units as translation results, e.g. cm)
 MARKER_LEN = 5.0   # 5 cm
 
-# ---------------------------
-# 3. Function to draw pose axes
-# ---------------------------
+
+
+
+
+
+# Function to draw pose axes
 def draw_axis(img, rvec, tvec, K, dist, length=3.0):
     """
     Draw 3D axes (X: red, Y: green, Z: blue) on the image.
@@ -44,9 +45,7 @@ def draw_axis(img, rvec, tvec, K, dist, length=3.0):
     cv2.line(img, origin, tuple(img_pts[2]), (255,0,0), 3)  # Z blue
     return img
 
-# ---------------------------
-# 4. Main loop (using webcam)
-# ---------------------------
+#Main loop (using webcam)
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")

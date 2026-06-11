@@ -19,8 +19,21 @@ python gen_pattern.py -o out.svg -r 11 -c 8 -T circles -s 20.0 -R 5.0 -u mm -w 2
 
 import argparse
 
-from svgfig import *
+import cv2
 
+from svgfig import * 
+
+
+
+
+ARUCO_DICT = cv2.aruco.DICT_6X6_250
+SQUARES_VERTICALLY = 7
+SQUARES_HORIZONTALLY = 5
+SQUARE_LENGTH = 0.03
+MARKER_LENGTH = 0.015
+LENGTH_PX = 640   # total length of the page in pixels
+MARGIN_PX = 20    # size of the margin in pixels
+SAVE_NAME = 'ChArUco_Marker.png'
 
 class PatternMaker:
     def __init__(self, cols, rows, output, units, square_size, radius_rate, page_width, page_height):
@@ -71,6 +84,18 @@ class PatternMaker:
                                  height=spacing, fill="black", stroke="none")
                     self.g.append(square)
 
+    def create_and_save_new_board():
+        dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
+        board = cv2.aruco.CharucoBoard((SQUARES_VERTICALLY, SQUARES_HORIZONTALLY), SQUARE_LENGTH, MARKER_LENGTH, dictionary)
+        size_ratio = SQUARES_HORIZONTALLY / SQUARES_VERTICALLY
+        img = cv2.aruco.CharucoBoard.generateImage(board, (LENGTH_PX, int(LENGTH_PX*size_ratio)), marginSize=MARGIN_PX)
+        cv2.imshow("img", img)
+        cv2.waitKey(2000)
+        cv2.imwrite(SAVE_NAME, img)
+    
+    
+    
+    
     def save(self):
         c = canvas(self.g, width="%d%s" % (self.width, self.units), height="%d%s" % (self.height, self.units),
                    viewBox="0 0 %d %d" % (self.width, self.height))
@@ -86,7 +111,7 @@ def main():
                         type=int)
     parser.add_argument("-r", "--rows", help="pattern rows", default="11", action="store", dest="rows", type=int)
     parser.add_argument("-T", "--type", help="type of pattern", default="circles", action="store", dest="p_type",
-                        choices=["circles", "acircles", "checkerboard"])
+                        choices=["circles", "acircles", "checkerboard", "charuco"])
     parser.add_argument("-u", "--units", help="length unit", default="mm", action="store", dest="units",
                         choices=["mm", "inches", "px", "m"])
     parser.add_argument("-s", "--square_size", help="size of squares in pattern", default="20.0", action="store",
@@ -99,6 +124,7 @@ def main():
                         dest="page_height", type=float)
     parser.add_argument("-a", "--page_size", help="page size, superseded if -h and -w are set", default="A4", action="store",
                         dest="page_size", choices=["A0", "A1", "A2", "A3", "A4", "A5"])
+    
     args = parser.parse_args()
 
     show_help = args.show_help
@@ -125,7 +151,7 @@ def main():
     pm = PatternMaker(columns, rows, output, units, square_size, radius_rate, page_width, page_height)
     # dict for easy lookup of pattern type
     mp = {"circles": pm.make_circles_pattern, "acircles": pm.make_acircles_pattern,
-          "checkerboard": pm.make_checkerboard_pattern}
+          "checkerboard": pm.make_checkerboard_pattern, "charuco": pm.create_and_save_new_board}
     mp[p_type]()
     # this should save pattern to output
     pm.save()
