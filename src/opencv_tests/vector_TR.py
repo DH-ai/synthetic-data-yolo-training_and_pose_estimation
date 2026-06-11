@@ -11,7 +11,6 @@ dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
 # ArUco setup
 ARUCO_DICT = cv2.aruco.DICT_6X6_250
-cv2.aruco.Charuc
 aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
 parameters = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
@@ -46,10 +45,10 @@ def draw_axis(img, rvec, tvec, K, dist, length=3.0):
     return img
 
 #Main loop (using webcam)
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit()
+# cap = cv2.VideoCapture(0)
+# if not cap.isOpened():
+#     print("Cannot open camera")
+#     exit()
 
 while True:
     ret, frame = cap.read()

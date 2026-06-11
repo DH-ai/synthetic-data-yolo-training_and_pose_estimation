@@ -84,14 +84,15 @@ class PatternMaker:
                                  height=spacing, fill="black", stroke="none")
                     self.g.append(square)
 
-    def create_and_save_new_board():
+    def create_and_save_new_board(self):
         dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
         board = cv2.aruco.CharucoBoard((SQUARES_VERTICALLY, SQUARES_HORIZONTALLY), SQUARE_LENGTH, MARKER_LENGTH, dictionary)
         size_ratio = SQUARES_HORIZONTALLY / SQUARES_VERTICALLY
         img = cv2.aruco.CharucoBoard.generateImage(board, (LENGTH_PX, int(LENGTH_PX*size_ratio)), marginSize=MARGIN_PX)
         cv2.imshow("img", img)
         cv2.waitKey(2000)
-        cv2.imwrite(SAVE_NAME, img)
+        path = os.path.join(os.getcwd(), SAVE_NAME)
+        cv2.imwrite(path, img)
     
     
     
