@@ -63,3 +63,6 @@ print("Camera Matrix:", mtx)
 print("Distortion Coefficients:", dist)
 # print("Rotation Vectors:", rvecs)
 # print("Translation Vectors:", tvecs)
+
+
+## add functionality to test with webcam

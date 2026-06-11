@@ -4,7 +4,6 @@ import numpy as np
 
 
 checkboard = False
-
 if checkboard:
 
     ## Testing K and dist from the checkboard test 
@@ -15,9 +14,9 @@ if checkboard:
     3.35986406e+01]])    
 else:
     # K and dist: from mech eye sdk
-    K = np.array([[2.45038e+03, 0.0, 969.89],
-                [0.0, 2.43172e+03, 619.58],
-                [0.0, 0.0, 1.0]], dtype=np.float64)
+    K = np.array([[2430.38, 0.0, 969.89],
+            [0.0, 2431.72, 619.58],
+            [0.0, 0.0, 1.0]],dtype=np.float64)
     dist = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
 
@@ -39,7 +38,6 @@ detector = cv2.aruco.CharucoDetector(board)
 
 # Real marker side length (in same units as translation results, e.g. cm)
 # MARKER_LEN = 50.0   # 5 cm
-
 
 
 # Function to draw pose axes
@@ -77,9 +75,16 @@ def process_frame(img,draw_rectangle:bool=False):
             print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
         if draw_rectangle:
             # Draw a rectangle around the detected board
-            img = cv2.polylines(img, [marker_corners.astype(int)], isClosed=True, color=(255,0,255), thickness=2)
+            # print(charuco_corners,marker_corners)
+            img = cv2.polylines(img, [charuco_corners.astype(int)], isClosed=True, color=(255,0,255), thickness=2)
+            # print((tuple(marker_corners[0][0][0].astype(float))))
+            # print(marker_corners[0][0][0].astype(float))
+            for marker_corner in marker_corners:
+                pt1 = tuple(marker_corner[0][0].astype(int))   # (x1, y1)
+                pt2 = tuple(marker_corner[0][2].astype(int))   # (x2, y2)
+                cv2.rectangle(img, pt1, pt2, (0, 255, 255), 2)
 
-    return img
+    return img, rvec, tvec
 
 
 def run_image(image_path=None):
@@ -92,9 +97,21 @@ def run_image(image_path=None):
     if img is None:
         raise FileNotFoundError("Could not load image, check path and filename")
 
-    img = process_frame(img)
+    img, rvec, tvec = process_frame(img,True)
+    distance = np.linalg.norm(tvec)   # in same units as SQUARE_LENGTH
+    cv2.putText(img, f"Distance to board: {distance:.3f} meters", (60,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
     cv2.imshow("ArUco Pose Estimation", img)
-    cv2.waitKey(0)
+    
+    
+
+    
+    while True:
+    # Wait indefinitely for a key press
+        key = cv2.waitKey(0) & 0xFF
+        
+        # Close window ONLY if 'q' (or 'Q') is pressed
+        if key == ord('q') or key == ord('Q'):
+            break
     cv2.destroyAllWindows()
 
 
@@ -109,7 +126,7 @@ def run_webcam(camera_index=0):
             if not ret:
                 break
 
-            frame = process_frame(frame)
+            frame, rvec, tvec = process_frame(frame)
             cv2.imshow("ArUco Pose Estimation", frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
