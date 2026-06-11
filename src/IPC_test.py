@@ -45,10 +45,25 @@ AXIS_DRAW_LEN = None       # None → auto (30% of longest bbox edge)
 # Camera intrinsics  (get from your scanner SDK / calibration)
 
 #changed or new intrinsic parameter
+
+# K and dist: from mech eye sdk
 K = np.array([[2430.38, 0.0, 969.89],
             [0.0, 2431.72, 619.58],
             [0.0, 0.0, 1.0]],dtype=np.float64)
 DIST = np.zeros(5, dtype=np.float64)   # distortion coeffs
+
+# K and dist: from OpenCV calibration using chessboard pattern, AFTER TEST IT DIDN'T WORK :CRY
+
+# K = np.array([[2.87094566e+03, 0.00000000e+00, 1.04248232e+03],
+#               [0.00000000e+00, 2.88403367e+03, 7.04362990e+02],
+#               [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float64)
+
+
+
+
+# DIST =   np.array([[ 2.03276531e-01, -3.47445013e+00,  6.88249751e-03,  1.74410119e-02,
+#    3.35986406e+01]])    
+
 
 # ── Two-scale voxel sizes ─────────────────────────────────────────────────────
 VOXEL_COARSE = 5.0    # for RANSAC global reg  (fast, approximate)
