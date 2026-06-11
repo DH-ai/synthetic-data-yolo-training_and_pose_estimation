@@ -43,9 +43,11 @@ ICP_MAX_ITER = 100
 AXIS_DRAW_LEN = None       # None → auto (30% of longest bbox edge)
 
 # Camera intrinsics  (get from your scanner SDK / calibration)
-K = np.array([[1727.4641025602748,    0.0, 655.82],
-              [   0.0, 1727.46, 516.63],
-              [   0.0,    0.0,   1.0]], dtype=np.float64)
+
+#changed or new intrinsic parameter
+K = np.array([[2430.38, 0.0, 969.89],
+            [0.0, 2431.72, 619.58],
+            [0.0, 0.0, 1.0]],dtype=np.float64)
 DIST = np.zeros(5, dtype=np.float64)   # distortion coeffs
 
 # ── Two-scale voxel sizes ─────────────────────────────────────────────────────
@@ -320,7 +322,7 @@ def draw_axes(img, T, K, dist, length):
                         [length, 0, 0],       # +X  red
                         [0, length, 0],       # +Y  green
                         [0, 0, length]])      # +Z  blue
-    p = project(pts3d, T, K, dist,S=0.001)
+    p = project(pts3d, T, K, dist)
     o, px, py, pz = p
 
     img = cv2.arrowedLine(img, tuple(o), tuple(px), (0,   0, 255), 2, tipLength=0.25)
@@ -342,7 +344,7 @@ def draw_bbox_3d(img, T, K, dist, extent):
         [0, 0, 0], [W, 0, 0], [W, D, 0], [0, D, 0],  # bottom face
         [0, 0, H], [W, 0, H], [W, D, H], [0, D, H],  # top face
     ])
-    p = project(corners, T, K, dist, S=0.001)  # scale down for better visualization
+    p = project(corners, T, K, dist, 0.01 )  # scale down for better visualization
 
     edges = [(0,1),(1,2),(2,3),(3,0),    # bottom ring
              (4,5),(5,6),(6,7),(7,4),    # top ring
@@ -401,21 +403,44 @@ def boundingBox(scene_pcd) :
     
     roi = (SCENE_ROI_MIN.x, SCENE_ROI_MIN.y, SCENE_ROI_MAX.x,SCENE_ROI_MAX.y  )   # (x_min, y_min, x_max, y_max)
     cv2.rectangle(img, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 0), 2)  
+
+    overlay = img.copy()
     # img = cv2.imread(SCENE_IMG_PATH)
-    pts_2d = project(np.asarray(scene_pcd.points), np.eye(5), K, DIST, 300, 80)
+    pts_2d = project(np.asarray(scene_pcd.points), np.eye(5), K, DIST)
     for uv in pts_2d:
-        cv2.circle(img, tuple(uv), 1, (0,255,0), thickness=1)
+        cv2.circle(img, tuple(uv), 1, (0,255,0), thickness=-1,)
+
     # cv2.imshow("Projected points", img)
     # cv2.waitKey(0)
+    alpha = 0.2 
 
-    bbox = cv2.selectROI("Select ROI", img, fromCenter=False, showCrosshair=True)
+    # 6. Blend the overlay layer back onto the original image
+    # Equation applied: output = (overlay * alpha) + (image * beta) + gamma
+    beta = 1.0 - alpha
+    gamma = 0
+    output_image = cv2.addWeighted(overlay, alpha, img, beta, gamma)
+    bbox = cv2.selectROI("Select ROI", output_image, fromCenter=False, showCrosshair=True)
     cv2.destroyAllWindows()
     print(f"Selected ROI: {bbox}")
     return bbox
 
 
 
+def pcd_overlayed_image(scene_pcd, img_path, K, dist,head):
+    img = cv2.imread(img_path)
+    if img is None:
+        raise FileNotFoundError(f"Could not load image, image shape: {img.shape if img is not None else 'Unknown'}")
+    pts_2d = project(np.asarray(scene_pcd.points), np.eye(5), K, dist)
+    for uv in pts_2d:
+        cv2.circle(img, tuple(uv), 1, (0,255,0), thickness=-1,)
+    
+    
+    cv2.imshow(head, img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
 
+    
 ## 
 
 # Projects every 3D point from the scene onto the RGB image using the camera intrinsics.
@@ -445,6 +470,8 @@ def crop_pcd_by_roi(pcd: o3d.geometry.PointCloud, roi_xywh, K, dist_coeffs=np.ze
     cropped.points = o3d.utility.Vector3dVector(pts[mask])
     if pcd.has_normals():
         cropped.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[mask])
+
+    pcd_overlayed_image(cropped, SCENE_IMG_PATH, K, dist_coeffs,"Cropped PCD Overlay")
     return cropped
 
 
@@ -466,10 +493,12 @@ def main():
 
 
 
-    scene_pcd = load_scene_pcd(SCENE_PCD_PATH, scale=1.4)   # metres → mm
+    scene_pcd = load_scene_pcd(SCENE_PCD_PATH, scale=1)   # metres → mm
     # scene_pcd.transform(T_table_to_cam)
     pts = np.asarray(scene_pcd.points)  
-    print(f"Z range: {np.min(pts[:,2]):.2f} to {np.max(pts[:,2]):.2f} (meters before scaling)")
+    print(f"Z range: {np.min(pts[:,2]):.2f} to {np.max(pts[:,2]):.2f} (mm before scaling)")
+    # pts = np.asarray(scene_pcd.points)
+    # print(f"Z range after load: {np.min(pts[:,2]):.1f} to {np.max(pts[:,2]):.1f} mm")
 
     bbox = boundingBox(scene_pcd)
 
@@ -489,6 +518,7 @@ def main():
     # scene_pcd = scene_pcd.crop(roi)
 
     # ── Crop scene using projection and the selected ROI
+
     scene_pcd = crop_pcd_by_roi(scene_pcd, bbox, K, DIST)
     print(f"[Crop]  {len(scene_pcd.points):,} pts remain in ROI")
 
