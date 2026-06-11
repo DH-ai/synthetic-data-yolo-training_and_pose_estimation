@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import os 
+
+import glob 
 # Prepare your calibration images
 chessboard_size = (9, 6)
 calibration_images = [os.path.join(os.path.dirname(os.path.abspath(__file__)), 'media', f) for f in ['image1.png', 'image1.png', 'image1.png']]  # Your images
@@ -44,17 +46,17 @@ ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.sh
 
 
 
-for fname in calibration_images:
-    img = cv2.imread(fname)
-    h, w = img.shape[:2]
-    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
-    print("Optimal new camera matrix:", newcameramtx)
-    dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
-    x, y, w, h = roi
-    dst = dst[y:y+h, x:x+w]
-    cv2.imshow("Undistorted", dst)
-    cv2.imshow("Original", img)
-    cv2.waitKey(0)
+# for fname in calibration_images:
+#     img = cv2.imread(fname)
+#     h, w = img.shape[:2]
+#     newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+#     print("Optimal new camera matrix:", newcameramtx)
+#     dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
+#     x, y, w, h = roi
+#     dst = dst[y:y+h, x:x+w]
+#     cv2.imshow("Undistorted", dst)
+#     cv2.imshow("Original", img)
+#     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
 # print("Camera calibration successful:", ret)
@@ -62,7 +64,8 @@ for fname in calibration_images:
 print("Camera Matrix:", mtx)
 print("Distortion Coefficients:", dist)
 # print("Rotation Vectors:", rvecs)
-# print("Translation Vectors:", tvecs)
+print("Translation Vectors:", tvecs)
+print(f"distance to board: {np.linalg.norm(tvecs[0])} meters")
 
 
 ## add functionality to test with webcam

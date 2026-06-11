@@ -13,7 +13,7 @@ if checkboard:
     dist =   np.array([[ 2.03276531e-01, -3.47445013e+00,  6.88249751e-03,  1.74410119e-02,
     3.35986406e+01]])    
 else:
-    # K and dist: from mech eye sdk
+    # K and dist: from mech eye sdk getting transformation vector at around 99.7 cm witch 2cm error, which is pretty good for our use case.
     K = np.array([[2430.38, 0.0, 969.89],
             [0.0, 2431.72, 619.58],
             [0.0, 0.0, 1.0]],dtype=np.float64)
@@ -135,7 +135,9 @@ def run_webcam(camera_index=0):
         cap.release()
         cv2.destroyAllWindows()
 
-
+def calibration():
+    # Add functionality to test with webcam
+    pass
 if __name__ == "__main__":
     import argparse
 
