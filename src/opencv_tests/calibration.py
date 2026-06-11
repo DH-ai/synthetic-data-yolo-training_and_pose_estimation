@@ -38,13 +38,28 @@ for fname in calibration_images:
         cv2.imshow("Corners", img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
+    
 
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
-print("Camera calibration successful:", ret)
+
+
+for fname in calibration_images:
+    img = cv2.imread(fname)
+    h, w = img.shape[:2]
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+    print("Optimal new camera matrix:", newcameramtx)
+    dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
+    x, y, w, h = roi
+    dst = dst[y:y+h, x:x+w]
+    cv2.imshow("Undistorted", dst)
+    cv2.imshow("Original", img)
+    cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+# print("Camera calibration successful:", ret)
 
 print("Camera Matrix:", mtx)
 print("Distortion Coefficients:", dist)
-print("Rotation Vectors:", rvecs)
-print("Translation Vectors:", tvecs)
+# print("Rotation Vectors:", rvecs)
+# print("Translation Vectors:", tvecs)
