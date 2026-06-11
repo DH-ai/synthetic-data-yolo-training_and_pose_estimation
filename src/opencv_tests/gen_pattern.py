@@ -91,7 +91,7 @@ class PatternMaker:
         img = cv2.aruco.CharucoBoard.generateImage(board, (LENGTH_PX, int(LENGTH_PX*size_ratio)), marginSize=MARGIN_PX)
         cv2.imshow("img", img)
         cv2.waitKey(2000)
-        path = os.path.join(os.getcwd(), SAVE_NAME)
+        path = os.path.join(os.path.dirname(__file__), SAVE_NAME)
         cv2.imwrite(path, img)
     
     
