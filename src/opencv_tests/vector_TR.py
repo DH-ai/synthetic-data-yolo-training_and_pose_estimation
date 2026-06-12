@@ -109,7 +109,7 @@ def run_image(image_path=None):
     distance = np.linalg.norm(tvec)   # in same units as SQUARE_LENGTH
     cv2.putText(img, f"Distance to board: {distance:.3f} meters", (60,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
     print(f"{rvec}, {tvec}")
-    cv2.line(img, (600,), (200, 50), (255, 0, 0), 2)  # Blue line for X-axis
+    # cv2.line(img, (600,), (200, 50), (255, 0, 0), 2)  # Blue line for X-axis
     cv2.imshow("ArUco Pose Estimation", img)
     
     
