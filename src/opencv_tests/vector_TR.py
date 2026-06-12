@@ -97,7 +97,7 @@ def process_frame(img,draw_rectangle:bool=False):
 
 def run_image(image_path=None):
     if image_path is None:
-        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_201258_263.png")
+        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200754_240.png")
 
     print(f"Loading test image from: {image_path}")
     img = cv2.imread(image_path)
@@ -108,6 +108,8 @@ def run_image(image_path=None):
     img, rvec, tvec = process_frame(img,True)
     distance = np.linalg.norm(tvec)   # in same units as SQUARE_LENGTH
     cv2.putText(img, f"Distance to board: {distance:.3f} meters", (60,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+    print(f"{rvec}, {tvec}")
+    cv2.line(img, (600,), (200, 50), (255, 0, 0), 2)  # Blue line for X-axis
     cv2.imshow("ArUco Pose Estimation", img)
     
     

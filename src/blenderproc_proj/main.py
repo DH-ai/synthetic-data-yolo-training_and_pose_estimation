@@ -28,4 +28,7 @@ scene = bproc.loader.load_blend(os.path.join( "/home/dhruv/obscureP/synthetic-da
 
 # bproc.writer.write_hdf5(os.path.join(OUTPUTPATH, "annotations.hdf5"), data)
 # bproc.writer.write_coco_annotations(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation", "assets", "annotations.json"), data)
- 
+#  bproc.writer.write_coco_annotations(os.path.join("/home/dhruv/obscureP/synthetic-dat
+# 
+# a-yolo-training_and_pose_estimation", "assets", "annotations.json"), data, instance_segmaps=
+
