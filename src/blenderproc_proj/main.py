@@ -4,31 +4,50 @@ import os
 import numpy as np
 bproc.init()
 
-# ASSET = os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimaDE
-# Load objects
-# objs = bproc.loader.load_obj(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files","Scene2.ob"))
-scene = bproc.loader.load_blend(os.path.join( "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation","blender_files","scene_prototype.blend"))
-    # /home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/Scene2.obj
-# Add lightB
-# light = bproc.types.Light()
+import blenderproc.api as bproc_api
+GAMMA = 0.712
+CONTRAST = 0.513
 
-# Set camera
-# bproc.camera.set_resolution(640, 480)
-
-# Add camera poses
+scene = bproc.loader.load_blend("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/scene_final_v2.blend",
+                                data_blocks="objects",
+    obj_types=["mesh", "light"])
 
 
-# cam_pose = bproc.math.build_transformation_mat([0, 0, 1], [0, 0])
-# bproc.camera.add_camera_pose(cam_pose)
-# Render
-# data = bproc.renderer.render()
-
-# Write annotations
+# Set the background environment using an HDRI file
+bproc.world.set_world_background_hdr_img("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/hdri_hugin/hdri/frames_0001 - frames_0111.tif", strength=1.3)
 
 
-# bproc.writer.write_hdf5(os.path.join(OUTPUTPATH, "annotations.hdf5"), data)
-# bproc.writer.write_coco_annotations(os.path.join("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation", "assets", "annotations.json"), data)
-#  bproc.writer.write_coco_annotations(os.path.join("/home/dhruv/obscureP/synthetic-dat
-# 
-# a-yolo-training_and_pose_estimation", "assets", "annotations.json"), data, instance_segmaps=
 
+
+# ==========================================
+# 5. Render (The heavy lifting)
+# ==========================================
+#data = bproc.renderer.render()
+
+# Filter for just your target mesh objects
+#target_objs = [obj for obj in objs if isinstance(obj, bproc.types.MeshObject)]
+
+# ==========================================
+# 6. Export Data (The fast part)
+# ==========================================
+
+# Writer 1: BOP Format (For your 6D Pose Model)
+# bproc.writer.write_bop(
+#     output_dir=args.output_dir,
+#     target_objects=target_objs,
+#     dataset_name="aeroforge_dataset",
+#     depth_scale=1.0,
+#     depth_type=np.uint16,
+#     append_to_existing_output=True,
+#     save_world2cam=True
+)
+
+# Writer 2: COCO Format (For YOLO Bounding Boxes & Segmentation)
+# bproc.writer.write_coco_annotations(
+#     output_dir=args.output_dir,
+#     instance_segmaps=data["instance_segmaps"],
+#     instance_attribute_maps=data["instance_attribute_maps"],
+#     colors=data["colors"],
+#     color_file_format="JPEG", # or PNG
+#     append_to_existing_output=True
+# )
