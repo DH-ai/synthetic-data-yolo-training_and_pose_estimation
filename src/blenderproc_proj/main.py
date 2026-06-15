@@ -19,6 +19,32 @@ bproc.world.set_world_background_hdr_img("/home/dhruv/obscureP/synthetic-data-yo
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ==========================================
 # 5. Render (The heavy lifting)
 # ==========================================
