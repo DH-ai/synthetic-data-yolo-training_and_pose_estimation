@@ -48,26 +48,6 @@ detector = cv2.aruco.CharucoDetector(board)
 # MARKER_LEN = 50.0   # 5 cm
 
 
-# Function to draw pose axes
-def draw_axis(img, rvec, tvec, K, dist, length=3.0):
-    """
-    Draw 3D axes (X: red, Y: green, Z: blue) on the image.
-    length: axis length in the same units as tvec (e.g., cm)
-    """
-    # Define 3D points in marker coordinate system (origin at marker centre)
-    axis_points = np.float32([[length,0,0], [0,length,0], [0,0,-length]]).reshape(-1,3)
-    # Project to 2D image points
-    img_pts, _ = cv2.projectPoints(axis_points, rvec, tvec, K, dist)
-    img_pts = img_pts.reshape(-1,2).astype(int)
-    # Origin (centre of marker)
-    origin, _ = cv2.projectPoints(np.float32([[0,0,0]]), rvec, tvec, K, dist)
-    origin = tuple(origin.reshape(2).astype(int))
-    
-    # Draw lines
-    cv2.line(img, origin, tuple(img_pts[0]), (0,0,255), 3)  # X red
-    cv2.line(img, origin, tuple(img_pts[1]), (0,255,0), 3)  # Y green
-    cv2.line(img, origin, tuple(img_pts[2]), (255,0,0), 3)  # Z blue
-    return img
 
 
 def process_frame(img,draw_rectangle:bool=False):
@@ -79,25 +59,23 @@ def process_frame(img,draw_rectangle:bool=False):
 
         if success:
             cv2.drawFrameAxes(img, K, dist, rvec, tvec, 0.1)
+            origin, _ = cv2.projectPoints(np.float32([[0,0,0]]), rvec, tvec, K, dist)
+            origin = tuple(origin.reshape(2).astype(int))
+            cv2.circle(img, origin, 5, (0,0,255), -1)
+            axis_points = np.float32([[0.1,0,0], [0,0.1,0], [0,0,0.1]]).reshape(-1,3)
+            axis_points, _ = cv2.projectPoints(axis_points, rvec, tvec, K, dist)
+            axis_points = axis_points.reshape(-1,2).astype(int)
             
-            # print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
-        if draw_rectangle:
-            # Draw a rectangle around the detected board
-            # print(charuco_corners,marker_corners)
-            img = cv2.polylines(img, [charuco_corners.astype(int)], isClosed=True, color=(255,0,255), thickness=2)
-            # print((tuple(marker_corners[0][0][0].astype(float))))
-            # print(marker_corners[0][0][0].astype(float))
-            for marker_corner in marker_corners:
-                pt1 = tuple(marker_corner[0][0].astype(int))   # (x1, y1)
-                pt2 = tuple(marker_corner[0][2].astype(int))   # (x2, y2)
-                cv2.rectangle(img, pt1, pt2, (0, 255, 255), 2)
+            cv2.putText(img, f"X ({axis_points[0][0]}, {axis_points[0][1]})", (axis_points[0][0], axis_points[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+            cv2.putText(img, f"Y ({axis_points[1][0]}, {axis_points[1][1]})", (axis_points[1][0], axis_points[1][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+            cv2.putText(img, f"Z ({axis_points[2][0]}, {axis_points[2][1]})", (axis_points[2][0], axis_points[2][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2)
+
 
     return img, rvec, tvec
 
-
 def run_image(image_path=None):
     if image_path is None:
-        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200549_786, t.png")
+        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200654_310.png")
 
     print(f"Loading test image from: {image_path}")
     img = cv2.imread(image_path)
@@ -130,7 +108,11 @@ def run_image(image_path=None):
 
     # Tilt: angle between camera Z-axis and board normal
     theta_tilt = np.arccos(R[2, 2])        # radians
-
+    print(f"R: {R}")
+    print(f"t: {t}")
+    print(f"n: {n}")
+    print(f"d_perp: {d_perp}")
+    print(f"theta_tilt: {theta_tilt}")
     print(f"d_perp      : {d_perp*1000:.2f} mm")
     print(f"t_z         : {t[2]*1000:.2f} mm")
     # assuming the board/table is horizontal then the camera is tilted can be calculated 
