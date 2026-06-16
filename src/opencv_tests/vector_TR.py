@@ -2,6 +2,9 @@ import os
 import cv2
 import numpy as np
 
+## plotting the points in 3d for visulization
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 checkboard = False
 mecheye = False # brute method of chaing K and dist 
@@ -48,6 +51,13 @@ detector = cv2.aruco.CharucoDetector(board)
 # MARKER_LEN = 50.0   # 5 cm
 
 
+def plot_points(points):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(points[:2][0], points[:2][1], points[:2][2], color='red')
+    
+    plt.show()
+
 
 
 def process_frame(img,draw_rectangle:bool=False):
@@ -59,13 +69,19 @@ def process_frame(img,draw_rectangle:bool=False):
 
         if success:
             cv2.drawFrameAxes(img, K, dist, rvec, tvec, 0.1)
+            
+
+
             origin, _ = cv2.projectPoints(np.float32([[0,0,0]]), rvec, tvec, K, dist)
             origin = tuple(origin.reshape(2).astype(int))
             cv2.circle(img, origin, 5, (0,0,255), -1)
             axis_points = np.float32([[0.1,0,0], [0,0.1,0], [0,0,0.1]]).reshape(-1,3)
             axis_points, _ = cv2.projectPoints(axis_points, rvec, tvec, K, dist)
+            print(f"axis_points: {axis_points}")
             axis_points = axis_points.reshape(-1,2).astype(int)
-            
+            print(f"axis_points: {axis_points}")
+            # plot_points(axis_points) since are projected points 3d doesn't make sense to plot
+            cv2.putText(img, f"Origin ({origin[0]}, {origin[1]})", (origin[0], origin[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
             cv2.putText(img, f"X ({axis_points[0][0]}, {axis_points[0][1]})", (axis_points[0][0], axis_points[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
             cv2.putText(img, f"Y ({axis_points[1][0]}, {axis_points[1][1]})", (axis_points[1][0], axis_points[1][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
             cv2.putText(img, f"Z ({axis_points[2][0]}, {axis_points[2][1]})", (axis_points[2][0], axis_points[2][1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2)
