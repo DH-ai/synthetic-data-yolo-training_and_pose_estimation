@@ -1,7 +1,7 @@
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-
+import yaml
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -90,7 +90,7 @@ def calculate_tilt_error(image_path: Path, board, detector, min_corners: int) ->
         perpendicular_distance_mm=perpendicular_distance_m * 1000.0,
         tz_distance_mm=float(translation[2] * 1000.0),
         tilt_depth_error_mm=float(tilt_depth_error_m * 1000.0),
-    ), perpendicular_distance_m
+    )
 
 
 def iter_images(image_dir: Path, pattern: str):
@@ -115,7 +115,7 @@ def print_result(result: TiltResult):
 def summarize(results: list[TiltResult]):
     tilt_angles = np.array([result.tilt_angle_deg for result in results], dtype=np.float64)
     tilt_errors = np.array([result.tilt_depth_error_mm for result in results], dtype=np.float64)
-
+    perpendicular_distances = np.array([result.perpendicular_distance_mm for result in results], dtype=np.float64)
     print("\nSummary")
     print(f"Images processed              : {len(results)}")
     print(f"Average tilt angle            : {tilt_angles.mean():.3f} deg")
@@ -123,6 +123,11 @@ def summarize(results: list[TiltResult]):
     print(f"Average absolute tilt error   : {np.abs(tilt_errors).mean():.3f} mm")
     print(f"Max absolute tilt error       : {np.abs(tilt_errors).max():.3f} mm")
     print(f"Std dev tilt error            : {tilt_errors.std(ddof=0):.3f} mm")
+    print(f"Average perpendicular distance: {perpendicular_distances.mean():.3f} mm")
+    print(f"Max perpendicular distance    : {perpendicular_distances.max():.3f} mm")
+    print(f"Min perpendicular distance    : {perpendicular_distances.min():.3f} mm")
+    print(f"Std dev perpendicular distance: {perpendicular_distances.std(ddof=0):.3f} mm")
+    return perpendicular_distances.mean(), tilt_angles.mean(), np.abs(tilt_errors).mean()
 
 
 def binned_std_by_distance(results: list[TiltResult], bin_count: int):
@@ -213,12 +218,10 @@ def main():
     results = []
     skipped = 0
     i = 0
-    average_perpendicular_distance = 0.0
     for image_path in iter_images(args.image_dir, args.pattern):
 
         try:
-            result, perpendicular_distance = calculate_tilt_error(image_path, board, detector, args.min_corners)
-            average_perpendicular_distance += perpendicular_distance
+            result = calculate_tilt_error(image_path, board, detector, args.min_corners)
             i += 1
             if i > 13:
                 break
@@ -229,22 +232,25 @@ def main():
 
         results.append(result)
         print_result(result)
-    average_perpendicular_distance /= i
-    print(f"Average perpendicular distance: {average_perpendicular_distance:.3f} meters")
 
     if not results:
         raise RuntimeError(f"No usable images found in {args.image_dir} matching {args.pattern}")
 
-    summarize(results)
+    d_perp_avg, avg_tilt_angle, avg_tilt_error = summarize(results)
     if skipped:
         print(f"Skipped images                : {skipped}")
 
     args.plot.parent.mkdir(parents=True, exist_ok=True)
     plot_std_vs_tvec_norm(results, args.plot, args.bins)
     print(f"Saved std-dev plot            : {args.plot}")
-    with open("pose_data.txt", "w") as f:
-        for result in results:
-            f.write(f"{result.perpendicular_distance_mm}\n")
 
+    data = {
+        "d_perp_avg": float(d_perp_avg),
+        "avg_tilt_angle": float(avg_tilt_angle),
+        "avg_tilt_error": float(avg_tilt_error),
+    }
+    with open("data_for_pose_estimation.yaml", "w") as f:
+        yaml.dump(data, f,default_flow_style=False, sort_keys=False)
+    print(f"Saved pose data to data_for_pose_estimation.yaml")
 if __name__ == "__main__":
     main()

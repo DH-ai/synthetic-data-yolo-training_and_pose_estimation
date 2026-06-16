@@ -97,7 +97,7 @@ def process_frame(img,draw_rectangle:bool=False):
 
 def run_image(image_path=None):
     if image_path is None:
-        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200549_786.png")
+        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200549_786, t.png")
 
     print(f"Loading test image from: {image_path}")
     img = cv2.imread(image_path)
