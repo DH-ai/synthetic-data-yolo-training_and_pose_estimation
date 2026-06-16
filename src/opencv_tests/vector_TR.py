@@ -80,7 +80,7 @@ def process_frame(img,draw_rectangle:bool=False):
         if success:
             cv2.drawFrameAxes(img, K, dist, rvec, tvec, 0.1)
             
-            print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
+            # print(f"ChArUco rvec={rvec.flatten()}, tvec={tvec.flatten()}")
         if draw_rectangle:
             # Draw a rectangle around the detected board
             # print(charuco_corners,marker_corners)
@@ -97,7 +97,7 @@ def process_frame(img,draw_rectangle:bool=False):
 
 def run_image(image_path=None):
     if image_path is None:
-        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200754_240.png")
+        image_path = os.path.join(os.path.dirname(__file__), "media_charucoBoard/rgb_image_20260611_200549_786.png")
 
     print(f"Loading test image from: {image_path}")
     img = cv2.imread(image_path)
@@ -106,9 +106,54 @@ def run_image(image_path=None):
         raise FileNotFoundError("Could not load image, check path and filename")
 
     img, rvec, tvec = process_frame(img,True)
-    distance = np.linalg.norm(tvec)   # in same units as SQUARE_LENGTH
-    cv2.putText(img, f"Distance to board: {distance:.3f} meters", (60,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-    print(f"{rvec}, {tvec}")
+
+
+    # R = cv2.Rodrigues(rvec)[0]
+    # t = tvec.flatten()  
+    # print(f"Rotation Matrix: {R}")
+    # print(f"Translation Vector: {t}")
+    # distance = np.dot(R[:,2], t)  # in same units as SQUARE_LENGTH  d_perpendicular = nTdotTvec to get perpendicular distance after removing rotation
+    # d_perp = np.array([0,0,distance],dtype=np.float32)
+    # d_perp = d_perp.reshape(3,1)
+    # t_z = np.array([0,0,t[2]],dtype=np.float32)
+    # tilt_angle = np.arccosh(np.dot(t_z,d_perp)/np.linalg.norm(t_z)*np.linalg.norm(d_perp))  #arccos(np.dot(t,d_perp)/np.linalg.norm(t)*np.linalg.norm(d_perp))
+    # print(f"Tilt Angle: {tilt_angle} radians")
+    # print(f"Tilt Angle: {tilt_angle*180/np.pi} degrees")
+
+    # print(f"Distance to board: {distance} meters")
+
+    R = cv2.Rodrigues(rvec)[0]
+    t = tvec.flatten()
+
+    n      = R[:, 2]                        # board normal in camera frame
+    d_perp = float(n @ t)                  # perpendicular distance (metres)
+
+    # Tilt: angle between camera Z-axis and board normal
+    theta_tilt = np.arccos(R[2, 2])        # radians
+
+    print(f"d_perp      : {d_perp*1000:.2f} mm")
+    print(f"t_z         : {t[2]*1000:.2f} mm")
+    # assuming the board/table is horizontal then the camera is tilted can be calculated 
+    print(f"Tilt angle  : {np.degrees(theta_tilt):.3f} deg")
+    print(f"Depth error from using t_z directly: {(t[2]-d_perp)*1000:.3f} mm")
+
+
+
+
+
+
+    cv2.putText(img, f"Distance to board: {d_perp:.3f} meters", (60,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+    cv2.putText(img, f"Tilt angle: {np.degrees(theta_tilt):.3f} deg", (60,60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+    cv2.putText(img, f"Depth error from using t_z directly: {(t[2]-d_perp)*1000:.3f} mm", (60,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+    
+    
+    # print("printing rvec")
+    # print(rvec)
+    # print("--------------------------------")
+    # print("printing tvec")
+    # print(tvec)
+    # print("--------------------------------")
+    # print(rvec.shape , tvec.shape)
     # cv2.line(img, (600,), (200, 50), (255, 0, 0), 2)  # Blue line for X-axis
     cv2.imshow("ArUco Pose Estimation", img)
     
