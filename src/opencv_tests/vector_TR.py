@@ -136,7 +136,7 @@ def run_image(image_path=None):
 
     R = cv2.Rodrigues(rvec)[0]
     t = tvec.flatten()
-
+    # with 
     n      = R[:, 2]                        # board normal in camera frame
     d_perp = float(n @ t)                  # perpendicular distance (metres)
 
