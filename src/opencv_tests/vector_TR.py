@@ -65,6 +65,24 @@ def process_frame(img,draw_rectangle:bool=False):
 
     if charuco_corners is not None and charuco_ids is not None and len(charuco_ids) > 3:
         obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids)
+        # print(f"obj_points: {obj_points}")
+        # print(f"img_points: {img_points}")
+
+
+        #printing the image points for debugging
+
+        # for point in img_points:
+        #     print(f"point: {point}")
+        #     print(f"tuple.shape{point.shape}")
+        #     # print(f"tuple: {tuple(point.reshape(-1, 2).T)}")
+        #     point = point.flatten().astype(int)
+        #     cv2.circle(img, point, 5, (0, 255, 0), -1
+
+
+        # cv2.imshow("Detected Charuco Board", img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # exit()
         success, rvec, tvec = cv2.solvePnP(obj_points, img_points, K, dist)
 
         if success:
