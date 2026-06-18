@@ -162,50 +162,36 @@ def main():
     # print(np.unique(seg_data["instance_segmaps"]))
     # return None
     bproc.renderer.set_max_amount_of_samples(1)
+    bproc.renderer.enable_depth_output(activate_antialiasing=True)
+    bproc.renderer.enable_normals_output()
+    # bproc.
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
     # seg_data = bproc.renderer.render_segmap(map_by=[
     #     "name",
     #     "instance",
     #     "class",
     data = bproc.renderer.render()
+    print(data.keys())
+    # exit()
 
-    print(data.keys)
-    exit()
-
-    #     ])
-    # print(seg_data["instance_attribute_maps"])
-    # print(len(seg_data["class_segmaps"][0][0]))
-    # image= seg_data["class_segmaps"][0]
-
-
-    # # exit()
-    # vis = (image * 60).astype(np.uint8)
-    # print(np.unique(vis))
-
-    # colored = cv2.applyColorMap(
-    #     vis,
-    #     cv2.COLORMAP_JET
-    # )
-
-
-    # print(colored.shape)
-    # cv2.imwrite("seg.png", colored)
-    # cv2.waitKey(0)
-    # print(image.shape)
-    # print(seg_data[])
     # bproc.writer.write_coco_annotations(
     #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-    #     instance_segmaps=seg_data["instance_segmaps"],
-    #     instance_attribute_maps=seg_data["instance_attribute_maps"],
+    #     instance_segmaps=data["instance_segmaps"],
+    #     instance_attribute_maps=data["instance_attribute_maps"],
     #     colors=data["colors"],
     #     color_file_format="PNG"
     # )
 
-    # bproc.writer.write_bop(
-    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-    #     target_objects=triangle + semiC + heart,
+    bproc.writer.write_bop(
+        output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
+        target_objects=triangle + semiC + heart,
+        depths = data["depth"],
+        colors = data["colors"],
+        color_file_format="PNG",
 
-    # )
+
+
+    )
 
 
 if __name__=='__main__':
