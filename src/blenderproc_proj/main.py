@@ -162,17 +162,34 @@ def main():
     # print(np.unique(seg_data["instance_segmaps"]))
     # return None
     bproc.renderer.set_max_amount_of_samples(1)
-    bproc.renderer.enable_depth_output(activate_antialiasing=True)
+    bproc.renderer.enable_depth_output(activate_antialiasing=False)
     bproc.renderer.enable_normals_output()
     # bproc.
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
     # seg_data = bproc.renderer.render_segmap(map_by=[
     #     "name",
-    #     "instance",
+    #     "instance",2
     #     "class",
     data = bproc.renderer.render()
+
+
+    depth = data["depth"][0]
+
+    valid = depth[np.isfinite(depth)]
+    valid = valid[valid > 0]
+
+    near = np.percentile(valid, 1)
+    far = np.percentile(valid, 99)
+
+    depth_vis = np.clip(depth, near, far)
+    depth_vis = (depth_vis - near) / (far - near)
+
+    import matplotlib.pyplot as plt
+    plt.imshow(depth_vis, cmap="gray")
+    plt.colorbar()
+    plt.show()
     print(data.keys())
-    # exit()
+    exit()
 
     # bproc.writer.write_coco_annotations(
     #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
