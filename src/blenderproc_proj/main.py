@@ -1,9 +1,11 @@
+# from email.mime import image
+
 import blenderproc as bproc
 import os 
 import numpy as np
 # import blenderproc.api as bproc_api
 
-
+import cv2
 
 bproc.init()
 GAMMA = 0.712
@@ -54,36 +56,15 @@ def set_camera():
     # T_ctow[:2,3]= [0,0]
     bproc.camera.add_camera_pose(Test_pose)
 
-scene = bproc.loader.load_blend("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/moved_v3.blend",
-                                data_blocks="objects",
-    obj_types=["mesh", "light"])
-
-
-# Set the background environment using an HDRI file
-bproc.world.set_world_background_hdr_img("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/hdri_hugin/hdri/frames_0001 - frames_0111.tif", strength=1.3)
-
-
-set_camera()
 
 
 
 
-normal_obj = []
-for obj in scene:
-    if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
+
+
+   
     
-    
-    
-category = {
-    "T1":0,
-    "T2":1,
-    "table":2,
-    "SC1":3,
-    "SC2":4,
-    "H1":5,
-    "H2":6
-    
-}
+
 
 #print(normal_obj)
 
@@ -91,33 +72,145 @@ category = {
 #print(normal_obj[6].edit_mode())
 
 
-map_obj = [
-    "T1",
-    "T2",
-    "table",
-    "SC1",
-    "SC2",
-    "H1",
-    "H2"
-
-]
-for obj in normal_obj:
-    obj.set_cp("category_id", category[map_obj[normal_obj.index(obj)]])
 
 
 # bproc.renderer.enable_segmentation_output(map_by=map_obj)
 
-seg_data = bproc.renderer.render_segmap(map_by=["name", "instance", "class"])
-print(seg_data["instance_attribute_maps"])
-print(np.unique(seg_data["instance_segmaps"][0]))
-data = bproc.renderer.render()
 
 
-bproc.writer.write_coco_annotations(
-    output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-    instance_segmaps=seg_data["instance_segmaps"],
-    instance_attribute_maps=seg_data["instance_attribute_maps"],
-    colors=data["colors"],
-    color_file_format="JPEG"
-)
 
+
+def main():
+    # bproc.renderer.enable_segmentation_output(map_by=map_obj)
+    # seg_data = bproc.renderer.render_segmap(map_by=["name", "instance", "class"])
+    # print(seg_data["instance_attribute_maps"])
+    # print(np.unique(seg_data["instance_segmaps"][0]))
+    # data = bproc.renderer.render()
+    # bproc.writer.write_coco_annotations(
+    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
+    #     instance_segmaps=seg_data["instance_segmaps"],
+    #     instance_attribute_maps=seg_data["instance_attribute_maps"],
+    #     colors=data["colors"],
+    #     color_file_format="JPEG"
+    # )
+
+
+    scene = bproc.loader.load_blend("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/moved_v3.blend",
+                                data_blocks="objects",
+    obj_types=["mesh", "light"])
+
+
+    # Set the background environment using an HDRI file
+    bproc.world.set_world_background_hdr_img("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/hdri_hugin/hdri/frames_0001 - frames_0111.tif", strength=1.3)
+
+
+
+    set_camera()
+
+
+    normal_obj = []
+    for obj in scene:
+        if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
+
+
+    category = {
+    "Triangle":1,
+    "SemiC":2,
+    "Heart":3,
+
+    
+    }
+    # map_obj = [
+
+    # "table",
+    # "SemiC",
+    # "Heart",
+    # "Triangle"
+
+    # ]
+    triangle = normal_obj[0:2]
+    table = normal_obj[2:3]
+    semiC = normal_obj[3:5]
+    heart = normal_obj[5:7]
+  
+    for obj in triangle:
+        obj.set_cp("category_id", category["Triangle"])
+        print(obj.get_name())
+    for obj in semiC:
+        obj.set_cp("category_id", category["SemiC"])
+        print(obj.get_name())
+
+
+    for obj in heart:
+        obj.set_cp("category_id", category["Heart"])
+        print(obj.get_name())
+        
+
+
+
+    # print(10*"=")
+    
+    # for i in seg_data["instance_attribute_maps"][0]:
+    #     print(i)
+    # print(10*"=")
+    
+    # # print(seg_data.get("instance_segmaps"))
+    # print(10*"=")
+    
+    # print(seg_data.get("class_segmaps"))
+    # print(seg_data["instance_attribute_maps"])
+    # print(np.unique(seg_data["instance_segmaps"]))
+    # return None
+    bproc.renderer.set_max_amount_of_samples(1)
+    bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
+    # seg_data = bproc.renderer.render_segmap(map_by=[
+    #     "name",
+    #     "instance",
+    #     "class",
+    data = bproc.renderer.render()
+
+    print(data.keys)
+    exit()
+
+    #     ])
+    # print(seg_data["instance_attribute_maps"])
+    # print(len(seg_data["class_segmaps"][0][0]))
+    # image= seg_data["class_segmaps"][0]
+
+
+    # # exit()
+    # vis = (image * 60).astype(np.uint8)
+    # print(np.unique(vis))
+
+    # colored = cv2.applyColorMap(
+    #     vis,
+    #     cv2.COLORMAP_JET
+    # )
+
+
+    # print(colored.shape)
+    # cv2.imwrite("seg.png", colored)
+    # cv2.waitKey(0)
+    # print(image.shape)
+    # print(seg_data[])
+    # bproc.writer.write_coco_annotations(
+    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
+    #     instance_segmaps=seg_data["instance_segmaps"],
+    #     instance_attribute_maps=seg_data["instance_attribute_maps"],
+    #     colors=data["colors"],
+    #     color_file_format="PNG"
+    # )
+
+    # bproc.writer.write_bop(
+    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
+    #     target_objects=triangle + semiC + heart,
+
+    # )
+
+
+if __name__=='__main__':
+    main()
+    
+ 
+
+    
