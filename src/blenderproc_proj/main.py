@@ -174,21 +174,25 @@ def main():
 
 
     depth = data["depth"][0]
-
+    print(np.unique(depth))
+    print(np.min(depth), np.max(depth))
+    print(np.isfinite(depth))
     valid = depth[np.isfinite(depth)]
+    print(valid)
     valid = valid[valid > 0]
+    print(valid)
 
     near = np.percentile(valid, 1)
-    far = np.percentile(valid, 99)
+    far = np.percentile(valid, 90)
 
     depth_vis = np.clip(depth, near, far)
     depth_vis = (depth_vis - near) / (far - near)
 
     import matplotlib.pyplot as plt
-    plt.imshow(depth_vis, cmap="gray")
-    plt.colorbar()
-    plt.show()
-    print(data.keys())
+    plt.imsave("depth_vis.png", depth_vis, cmap="gray")
+    # plt.colorbar()
+    # plt.show()
+    # print(data.keys())
     exit()
 
     # bproc.writer.write_coco_annotations(
