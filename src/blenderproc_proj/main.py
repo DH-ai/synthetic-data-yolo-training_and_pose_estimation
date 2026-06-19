@@ -13,7 +13,8 @@ CONTRAST = 0.513
 NOISE_STD = 0.02  # std-dev of additive Gaussian image noise, in normalized [0, 1] range
 
 # --- Data generation config ---
-NUM_ITERATIONS = 1        # number of scene/render iterations (number of data points)
+# Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
+NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
 INWARD_FRACTION = 0.8       # drop objects only within the inner 90% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
 SPAWN_HEIGHT_STAGGER = 0.0  # extra random height per object so overlapping footprints don't collide at spawn
@@ -125,7 +126,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/moved_v3.blend",
+    scene = bproc.loader.load_blend("`blender_files/moved_v3.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -207,7 +208,7 @@ def main():
     # bproc.renderer.set_output_format(view_transform="Standard")
     # bproc.renderer.set_render_devices(["GPU"])
     bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
-    bproc.renderer.set_max_amount_of_samples(256)
+    bproc.renderer.set_max_amount_of_samples(128)
     bproc.renderer.engine = "CYCLES"
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
 
@@ -218,7 +219,7 @@ def main():
         # Randomize HDRI strength (+-30%) and re-apply the background
         hdri_strength = HDRI_BASE_STRENGTH * np.random.uniform(1 - RANDOM_RANGE, 1 + RANDOM_RANGE)
         bproc.world.set_world_background_hdr_img(
-            "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/assets/hdri_hugin/hdri/frames_0001 - frames_0111.tif",
+            "assets/hdri_hugin/hdri/frames_0001 - frames_0111.tif",
             strength=hdri_strength,
         )
 

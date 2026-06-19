@@ -1,0 +1,14 @@
+# Mirrors the project's .venv (Python 3.14 host). In the container these run the
+# BlenderProc *launcher*; the actual render runs inside Blender's bundled Python.
+# Pinned to the same versions as the local .venv.
+blenderproc==2.8.0
+numpy==2.4.6
+opencv-python==4.13.0.92
+h5py==3.16.0
+matplotlib==3.10.9
+pillow==12.2.0
+pycocotools==2.0.11
+PyYAML==6.0.3
+requests==2.34.2
+progressbar==2.5
+setuptools==82.0.1

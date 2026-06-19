@@ -71,14 +71,14 @@ Just navigate to `http://192.168.1.100:8000` to see a JSON listing of files.
 
 ## Features
 
-✅ **Large file support** - Streams in 1MB chunks; 10GB+ files never load into RAM (verified)  
-✅ **Concurrent transfers** - Threaded server; a large download won't block other clients  
-✅ **Streaming downloads** - Download starts immediately, progress tracking  
-✅ **Streaming uploads** - Upload large files without loading into memory  
-✅ **Logging** - All requests/transfers logged to console and `file_server.log`  
-✅ **Directory browsing** - Browse subdirectories, see file listings as JSON  
-✅ **Security** - Path traversal protection built-in (returns 403)  
-✅ **Cross-platform** - Works on Windows, macOS, Linux  
+- **Large file support** - Streams in 1MB chunks; 10GB+ files never load into RAM (verified)  
+- **Concurrent transfers** - Threaded server; a large download won't block other clients  
+- **Streaming downloads** - Download starts immediately, progress tracking  
+- **Streaming uploads** - Upload large files without loading into memory  
+- **Logging** - All requests/transfers logged to console and `file_server.log`  
+- **Directory browsing** - Browse subdirectories, see file listings as JSON  
+- **Security** - Path traversal protection built-in (returns 403)  
+- **Cross-platform** - Works on Windows, macOS, Linux  
 
 ## Advanced Usage
 
@@ -142,7 +142,7 @@ Typical speeds on a local network:
 
 ## Security Notes
 
-⚠️ **This server is for local networks only** - Do NOT expose to the internet
+**This server is for local networks only** - Do NOT expose to the internet
 
 - The server runs in your LAN without encryption
 - All files are accessible to anyone on the network
