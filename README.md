@@ -24,4 +24,4 @@ Synthetic Scene Generation
 RGB + Depth + Masks + Pose Labels
     ↓
 ├── YOLO Training
-└── FoundationPose Fine Tuning / Training
+└── GDRNPP Fine Tuning / Training

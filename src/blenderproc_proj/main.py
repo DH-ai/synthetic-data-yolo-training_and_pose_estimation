@@ -166,8 +166,8 @@ def main():
     target_objects = triangle + semiC + heart
 
     # Collect lights already in the scene and remember their base energy for randomization
-    # lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
-    # light_base_energies = [light.get_energy() for light in lights]
+    lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
+    light_base_energies = [light.get_energy() for light in lights]
 
     # --- Physics drop setup ---
     # Compute the table top height and the inner-90% XY region from the table bound box
@@ -206,11 +206,9 @@ def main():
     # Remove Blender's display post-processing (Filmic/AgX look) so only our gamma/contrast apply
     # bproc.renderer.set_output_format(view_transform="Standard")
     # bproc.renderer.set_render_devices(["GPU"])
-    
+    bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
     bproc.renderer.set_max_amount_of_samples(256)
     bproc.renderer.engine = "CYCLES"
-    bproc.renderer.enable_depth_output(activate_antialiasing=False)
-    bproc.renderer.enable_normals_output()
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
 
     for it in range(NUM_ITERATIONS):
@@ -251,19 +249,6 @@ def main():
         # Apply calibrated gamma/contrast and add noise (Blender post-processing already disabled)
         data["colors"] = apply_image_adjustments(data["colors"], gamma_contrast=True)
 
-        # Save a human-viewable depth visualization (raw depth looks near-binary in normal viewers)
-        depth = data["depth"][0]
-        valid = depth[np.isfinite(depth)]
-        valid = valid[valid > 0]
-        if valid.size > 0:
-            near = np.percentile(valid, 1)
-            far = np.percentile(valid, 99)
-            depth_vis = np.clip(depth, near, far)
-            depth_vis = (depth_vis - near) / (far - near) if far > near else np.zeros_like(depth_vis)
-            depth_vis_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/depth_vis")
-            os.makedirs(depth_vis_dir, exist_ok=True)
-            cv2.imwrite(os.path.join(depth_vis_dir, f"{it:06d}.png"), (depth_vis * 255).astype(np.uint8))
-
         coco = False
         if coco:
             bproc.writer.write_coco_annotations(
@@ -277,9 +262,10 @@ def main():
             bproc.writer.write_bop(
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
                 target_objects=target_objects,
-                depths = data["depth"],
                 colors = data["colors"],
                 color_file_format="PNG",
+                depth = data["depth"],
+                annotation_unit="mm",
             )
 
 
