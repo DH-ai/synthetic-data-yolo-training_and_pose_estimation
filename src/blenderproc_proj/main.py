@@ -56,43 +56,7 @@ def set_camera():
     # T_ctow[:2,3]= [0,0]
     bproc.camera.add_camera_pose(Test_pose)
 
-
-
-
-
-
-
-   
-    
-
-
-#print(normal_obj)
-
-# 2 -> table 
-#print(normal_obj[6].edit_mode())
-
-
-
-
-# bproc.renderer.enable_segmentation_output(map_by=map_obj)
-
-
-
-
-
 def main():
-    # bproc.renderer.enable_segmentation_output(map_by=map_obj)
-    # seg_data = bproc.renderer.render_segmap(map_by=["name", "instance", "class"])
-    # print(seg_data["instance_attribute_maps"])
-    # print(np.unique(seg_data["instance_segmaps"][0]))
-    # data = bproc.renderer.render()
-    # bproc.writer.write_coco_annotations(
-    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-    #     instance_segmaps=seg_data["instance_segmaps"],
-    #     instance_attribute_maps=seg_data["instance_attribute_maps"],
-    #     colors=data["colors"],
-    #     color_file_format="JPEG"
-    # )
 
 
     scene = bproc.loader.load_blend("/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/blender_files/moved_v3.blend",
@@ -120,14 +84,7 @@ def main():
 
     
     }
-    # map_obj = [
 
-    # "table",
-    # "SemiC",
-    # "Heart",
-    # "Triangle"
-
-    # ]
     triangle = normal_obj[0:2]
     table = normal_obj[2:3]
     semiC = normal_obj[3:5]
@@ -144,75 +101,35 @@ def main():
     for obj in heart:
         obj.set_cp("category_id", category["Heart"])
         print(obj.get_name())
-        
 
-
-
-    # print(10*"=")
-    
-    # for i in seg_data["instance_attribute_maps"][0]:
-    #     print(i)
-    # print(10*"=")
-    
-    # # print(seg_data.get("instance_segmaps"))
-    # print(10*"=")
-    
-    # print(seg_data.get("class_segmaps"))
-    # print(seg_data["instance_attribute_maps"])
-    # print(np.unique(seg_data["instance_segmaps"]))
-    # return None
     bproc.renderer.set_max_amount_of_samples(1)
     bproc.renderer.enable_depth_output(activate_antialiasing=False)
     bproc.renderer.enable_normals_output()
-    # bproc.
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
-    # seg_data = bproc.renderer.render_segmap(map_by=[
-    #     "name",
-    #     "instance",2
-    #     "class",
+
     data = bproc.renderer.render()
 
-
-    depth = data["depth"][0]
-    print(np.unique(depth))
-    print(np.min(depth), np.max(depth))
-    print(np.isfinite(depth))
-    valid = depth[np.isfinite(depth)]
-    print(valid)
-    valid = valid[valid > 0]
-    print(valid)
-
-    near = np.percentile(valid, 1)
-    far = np.percentile(valid, 90)
-
-    depth_vis = np.clip(depth, near, far)
-    depth_vis = (depth_vis - near) / (far - near)
-
-    import matplotlib.pyplot as plt
-    plt.imsave("depth_vis.png", depth_vis, cmap="gray")
-    # plt.colorbar()
-    # plt.show()
-    # print(data.keys())
-    exit()
-
-    # bproc.writer.write_coco_annotations(
-    #     output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-    #     instance_segmaps=data["instance_segmaps"],
-    #     instance_attribute_maps=data["instance_attribute_maps"],
-    #     colors=data["colors"],
-    #     color_file_format="PNG"
-    # )
-
-    bproc.writer.write_bop(
-        output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),
-        target_objects=triangle + semiC + heart,
-        depths = data["depth"],
-        colors = data["colors"],
-        color_file_format="PNG",
+    coco = False
+    if coco:
+        bproc.writer.write_coco_annotations(
+            output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/coco"),
+            instance_segmaps=data["instance_segmaps"],
+            instance_attribute_maps=data["instance_attribute_maps"],
+            colors=data["colors"],
+            color_file_format="PNG",
+        )
+    else:
+        bproc.writer.write_bop(
+            output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
+            target_objects=triangle + semiC + heart,
+            depths = data["depth"],
+            colors = data["colors"],
+            color_file_format="PNG",
 
 
 
-    )
+        )
+        
 
 
 if __name__=='__main__':
