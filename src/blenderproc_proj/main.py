@@ -1,16 +1,11 @@
-# from email.mime import image
-
 import blenderproc as bproc
 import os 
 import numpy as np
-# import blenderproc.api as bproc_api
-
-import cv2
 
 bproc.init()
 GAMMA = 0.712
 CONTRAST = 0.513
-NOISE_STD = 0.02  # std-dev of additive Gaussian image noise, in normalized [0, 1] range
+NOISE_STD = 0.03  # std-dev of additive Gaussian image noise, in normalized [0, 1] range
 
 # --- Data generation config ---
 # Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
@@ -126,7 +121,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("`blender_files/moved_v3.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v3.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -248,7 +243,7 @@ def main():
         data = bproc.renderer.render()
 
         # Apply calibrated gamma/contrast and add noise (Blender post-processing already disabled)
-        data["colors"] = apply_image_adjustments(data["colors"], gamma_contrast=True)
+        data["colors"] = apply_image_adjustments(data["colors"], gamma_contrast=False)
 
         coco = False
         if coco:
@@ -264,9 +259,10 @@ def main():
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
                 target_objects=target_objects,
                 colors = data["colors"],
+                depths = data["depth"],
                 color_file_format="PNG",
-                depth = data["depth"],
                 annotation_unit="mm",
+                
             )
 
 
