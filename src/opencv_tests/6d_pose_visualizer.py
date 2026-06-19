@@ -25,10 +25,6 @@ SCENE_ROI_MIN = Point(0, 0) # Image
 SCENE_ROI_MAX = Point(1920, 1200) 
 
 
-# ICP params  (units = same as your point cloud — usually mm)
-VOXEL_SIZE = 2.0          # downsample voxel size
-ICP_MAX_ITER = 100
-AXIS_DRAW_LEN = None       # None → auto (30% of longest bbox edge)
 
 
 # camera intrinsic 
