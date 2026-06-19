@@ -9,7 +9,7 @@ NOISE_STD = 0.03  # std-dev of additive Gaussian image noise, in normalized [0, 
 
 # --- Data generation config ---
 # Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
-NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
+NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "20"))
 INWARD_FRACTION = 0.8       # drop objects only within the inner 90% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
 SPAWN_HEIGHT_STAGGER = 0.0  # extra random height per object so overlapping footprints don't collide at spawn

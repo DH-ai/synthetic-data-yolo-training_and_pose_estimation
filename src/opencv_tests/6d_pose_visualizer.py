@@ -112,10 +112,10 @@ def bop_rvec_tvec(scene_gt_data, instance_id=0):
 def main(dataset:str="bop"):
     if dataset=="bop":
         json_obj = process_json(dataset)
-        i = 0 
+        i = 8
 
         img_path = DATASET_PATH / f"train_pbr/000000/rgb/00000{i}.png"
-        rvec_arr, tvec_arr, size = bop_rvec_tvec(json_obj, instance_id=0)
+        rvec_arr, tvec_arr, size = bop_rvec_tvec(json_obj, instance_id=i)
         
         #reading the image 
         img = cv2.imread(str(img_path))
