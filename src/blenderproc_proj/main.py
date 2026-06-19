@@ -10,13 +10,14 @@ import cv2
 bproc.init()
 GAMMA = 0.712
 CONTRAST = 0.513
+NOISE_STD = 0.02  # std-dev of additive Gaussian image noise, in normalized [0, 1] range
 
 # --- Data generation config ---
-NUM_ITERATIONS = 10         # number of scene/render iterations (number of data points)
-INWARD_FRACTION = 0.9       # drop objects only within the inner 90% of the table top
-SPAWN_HEIGHT_OFFSET = 0.3  # meters above the table top to spawn objects before the (flat) drop
-SPAWN_HEIGHT_STAGGER = 0.05  # extra random height per object so overlapping footprints don't collide at spawn
-CAMERA_SAMPLE_PROB = 0.2    # 20% of the time sample the camera, 80% use the fixed pose
+NUM_ITERATIONS = 1        # number of scene/render iterations (number of data points)
+INWARD_FRACTION = 0.8       # drop objects only within the inner 90% of the table top
+SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
+SPAWN_HEIGHT_STAGGER = 0.0  # extra random height per object so overlapping footprints don't collide at spawn
+CAMERA_SAMPLE_PROB = 0.0    # 20% of the time sample the camera, 80% use the fixed pose
 CIRCLE_TOP_CONST = 0.4919   # y-threshold for the top 20% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
 RANDOM_RANGE = 0.3          # +-30% randomization range for HDRI strength and light energy
@@ -45,7 +46,33 @@ Test_pose = [
     ]
 
 
-def set_camera():
+def apply_image_adjustments(colors, gamma_contrast: bool = True)->np.ndarray:
+    """Apply the calibrated gamma/contrast and add Gaussian noise to rendered RGB images.
+
+    Blender's display post-processing is disabled (view_transform="Standard"), so these are
+    the only adjustments applied. Operates on a list of HxWx3 uint8 arrays from the renderer.
+    """
+    adjusted = []
+    for img in colors:
+        x = np.asarray(img, dtype=np.float32) / 255.0
+
+
+        
+        if gamma_contrast:
+            # Calibrated gamma correction
+            x = np.power(np.clip(x, 0.0, 1.0), GAMMA)
+            # Calibrated contrast around mid-gray
+            x = (x - 0.5) * CONTRAST + 0.5
+    
+    
+        # Additive Gaussian sensor noise
+        x = x + np.random.normal(0.0, NOISE_STD, x.shape)
+        x = np.clip(x, 0.0, 1.0)
+        adjusted.append((x * 255.0).astype(np.uint8))
+    return adjusted
+
+
+def set_camera()->None:
     """Set BlenderProc camera intrinsics from the calibrated K matrix."""
     bproc.camera.set_intrinsics_from_K_matrix(K, WIDTH,HEIGHT)
     
@@ -68,7 +95,7 @@ def set_camera():
     bproc.camera.add_camera_pose(Test_pose)
 
 
-def sample_camera_pose(targets, table_center):
+def sample_camera_pose(targets, table_center)->None:
     """Sample a camera pose on the top part of a dome centered at the table.
 
     The dome radius equals the current camera distance from the world origin and
@@ -139,8 +166,8 @@ def main():
     target_objects = triangle + semiC + heart
 
     # Collect lights already in the scene and remember their base energy for randomization
-    lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
-    light_base_energies = [light.get_energy() for light in lights]
+    # lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
+    # light_base_energies = [light.get_energy() for light in lights]
 
     # --- Physics drop setup ---
     # Compute the table top height and the inner-90% XY region from the table bound box
@@ -170,12 +197,18 @@ def main():
         # Stagger the spawn height so objects with overlapping XY footprints don't collide at spawn
         z = spawn_z + np.random.uniform(0, SPAWN_HEIGHT_STAGGER)
         obj.set_location([x, y, z])
+
         # Keep the object's original face-up orientation, randomize only the in-plane (yaw) rotation
         base_rot = base_rotation_by_name[obj.get_name()]
         obj.set_rotation_euler([base_rot[0], base_rot[1], np.random.uniform(0, 2 * np.pi)])
 
     # --- Renderer config (set once) ---
-    bproc.renderer.set_max_amount_of_samples(1)
+    # Remove Blender's display post-processing (Filmic/AgX look) so only our gamma/contrast apply
+    # bproc.renderer.set_output_format(view_transform="Standard")
+    # bproc.renderer.set_render_devices(["GPU"])
+    
+    bproc.renderer.set_max_amount_of_samples(256)
+    bproc.renderer.engine = "CYCLES"
     bproc.renderer.enable_depth_output(activate_antialiasing=False)
     bproc.renderer.enable_normals_output()
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
@@ -199,11 +232,11 @@ def main():
         bproc.object.sample_poses(
             objects_to_sample=target_objects,
             sample_pose_func=sample_pose_func,
-            max_tries=1000,
+            max_tries=10,
         )
         bproc.object.simulate_physics_and_fix_final_poses(
             min_simulation_time=2,
-            max_simulation_time=8,
+            max_simulation_time=10,
             check_object_interval=1,
         )
 
@@ -214,6 +247,22 @@ def main():
             set_camera()
 
         data = bproc.renderer.render()
+
+        # Apply calibrated gamma/contrast and add noise (Blender post-processing already disabled)
+        data["colors"] = apply_image_adjustments(data["colors"], gamma_contrast=True)
+
+        # Save a human-viewable depth visualization (raw depth looks near-binary in normal viewers)
+        depth = data["depth"][0]
+        valid = depth[np.isfinite(depth)]
+        valid = valid[valid > 0]
+        if valid.size > 0:
+            near = np.percentile(valid, 1)
+            far = np.percentile(valid, 99)
+            depth_vis = np.clip(depth, near, far)
+            depth_vis = (depth_vis - near) / (far - near) if far > near else np.zeros_like(depth_vis)
+            depth_vis_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/depth_vis")
+            os.makedirs(depth_vis_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(depth_vis_dir, f"{it:06d}.png"), (depth_vis * 255).astype(np.uint8))
 
         coco = False
         if coco:
