@@ -317,7 +317,6 @@ def main():
         print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
-        print(f"Iteration {i}: Blur: {blur:.4f}")
         print(f"Iteration {it + 1}/{NUM_ITERATIONS} complete.......")
 
 
