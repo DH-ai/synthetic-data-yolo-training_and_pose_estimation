@@ -1,22 +1,25 @@
 import blenderproc as bproc
-import os 
+import os
 import numpy as np
+import cv2
 
 bproc.init()
 GAMMA = 0.712
 CONTRAST = 0.513
-NOISE_STD = 0.03  # std-dev of additive Gaussian image noise, in normalized [0, 1] range
+NOISE_STD_MAX = 0.03   # upper bound; each iteration samples sigma ~ uniform(0, NOISE_STD_MAX)
+BLUR_PROB = 0.2        # probability of applying a slight Gaussian blur to an image
+BASE_EXPOSURE = 0.0    # Blender exposure offset base; jittered +-0.5 each iteration
 
 # --- Data generation config ---
 # Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
-NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "20"))
-INWARD_FRACTION = 0.8       # drop objects only within the inner 90% of the table top
+NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
+INWARD_FRACTION = 0.8       # drop objects only within the inner 80% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
-SPAWN_HEIGHT_STAGGER = 0.0  # extra random height per object so overlapping footprints don't collide at spawn
-CAMERA_SAMPLE_PROB = 0.0    # 20% of the time sample the camera, 80% use the fixed pose
-CIRCLE_TOP_CONST = 0.4919   # y-threshold for the top 20% area of a unit circle
+SPAWN_HEIGHT_STAGGER = 0.024  # extra random height per object so overlapping footprints don't collide at spawn
+CAMERA_SAMPLE_PROB = 0    # 10% of the time sample the camera, 80% use the fixed pose
+CIRCLE_TOP_CONST = 0.999   # y-threshold for the top 0.2% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
-RANDOM_RANGE = 0.3          # +-30% randomization range for HDRI strength and light energy
+RANDOM_RANGE = 0.5          # +-50% randomization range for HDRI strength and light energy
 
 K = np.array([[2481.9412514178307, 0.0, 978.95936559694314],
         [0.0, 2482.3917472975795, 629.72289542481894],
@@ -42,29 +45,62 @@ Test_pose = [
     ]
 
 
-def apply_image_adjustments(colors, gamma_contrast: bool = True)->np.ndarray:
-    """Apply the calibrated gamma/contrast and add Gaussian noise to rendered RGB images.
+def kelvin_to_rgb(temp_k: float):
+    """Convert a color temperature in Kelvin to a normalized RGBA color.
 
-    Blender's display post-processing is disabled (view_transform="Standard"), so these are
-    the only adjustments applied. Operates on a list of HxWx3 uint8 arrays from the renderer.
+    Uses the Tanner Helland piecewise approximation, valid for 1000–40000 K.
+    Returns [r, g, b, 1.0] with values in [0, 1].
+    """
+    t = temp_k / 100.0
+    # Red
+    r = 1.0 if t <= 66 else float(np.clip(329.698727446 * ((t - 60) ** -0.1332047592) / 255.0, 0, 1))
+    # Green
+    if t <= 66:
+        g = float(np.clip((99.4708025861 * np.log(t) - 161.1195681661) / 255.0, 0, 1))
+    else:
+        g = float(np.clip(288.1221695283 * ((t - 60) ** -0.0755148492) / 255.0, 0, 1))
+    # Blue
+    if t >= 66:
+        b = 1.0
+    elif t <= 19:
+        b = 0.0
+    else:
+        b = float(np.clip((138.5177312231 * np.log(t - 10) - 305.0447927307) / 255.0, 0, 1))
+    return [r, g, b]
+
+
+def apply_image_adjustments(colors, noise_sigma: float = 0.0, exposure: float = 0.0, gamma_contrast: bool = True):
+    """Apply exposure, gamma/contrast, per-iteration Gaussian noise, and occasional blur.
+
+    :param colors:         List of HxWx3 uint8 arrays from the renderer.
+    :param noise_sigma:    Std-dev of additive Gaussian noise for this iteration (sampled externally).
+    :param exposure:       EV stop offset: image is multiplied by 2^exposure before other ops.
+    :param gamma_contrast: Apply the calibrated GAMMA / CONTRAST correction.
     """
     adjusted = []
     for img in colors:
         x = np.asarray(img, dtype=np.float32) / 255.0
 
+        # Exposure in EV stops: image * 2^exposure (identical to Blender's exposure slider)
+        if exposure != 0.0:
+            x = x * (2.0 ** exposure)
 
-        
         if gamma_contrast:
-            # Calibrated gamma correction
             x = np.power(np.clip(x, 0.0, 1.0), GAMMA)
-            # Calibrated contrast around mid-gray
             x = (x - 0.5) * CONTRAST + 0.5
-    
-    
-        # Additive Gaussian sensor noise
-        x = x + np.random.normal(0.0, NOISE_STD, x.shape)
+
+        # Additive Gaussian sensor noise with per-iteration sigma
+        if noise_sigma > 0.0:
+            x = x + np.random.normal(0.0, noise_sigma, x.shape)
+
         x = np.clip(x, 0.0, 1.0)
-        adjusted.append((x * 255.0).astype(np.uint8))
+        img_u8 = (x * 255.0).astype(np.uint8)
+
+        # 20% chance of a slight Gaussian blur (simulates focus softness / motion)
+        if np.random.rand() < BLUR_PROB:
+            img_u8 = cv2.GaussianBlur(img_u8, (5, 5), sigmaX=0)
+
+        adjusted.append(img_u8)
     return adjusted
 
 
@@ -101,7 +137,8 @@ def sample_camera_pose(targets, table_center)->None:
     bproc.camera.set_intrinsics_from_K_matrix(K, WIDTH, HEIGHT)
 
     radius = float(np.linalg.norm(np.array(Test_pose)[:3, 3]))
-
+    print(f"Sampling camera pose on a dome of radius {radius:.3f} m centered at {table_center}")
+    print(f"Dist above center: {CIRCLE_TOP_CONST * radius:.3f} m (top {100 * (1 - CIRCLE_TOP_CONST ** 2):.1f}% of the dome)")
     location = bproc.sampler.part_sphere(
         center=table_center,
         radius=radius,
@@ -112,7 +149,7 @@ def sample_camera_pose(targets, table_center)->None:
 
     poi = bproc.object.compute_poi(targets)
     rotation_matrix = bproc.camera.rotation_from_forward_vec(
-        poi - location, inplane_rot=np.random.uniform(-0.349, 0.349)
+        poi - location, inplane_rot=np.random.uniform(0.1, -0.1)
     )
     cam2world_matrix = bproc.math.build_transformation_mat(location, rotation_matrix)
     bproc.camera.add_camera_pose(cam2world_matrix)
@@ -218,35 +255,45 @@ def main():
             strength=hdri_strength,
         )
 
-        # Randomize the energy of the existing scene lights (sun / point) by +-30%
+        # Randomize the energy and color temperature of the existing scene lights
+        light_temp_k = np.random.uniform(3500, 6500)
+        light_color = kelvin_to_rgb(light_temp_k)
         for light, base_energy in zip(lights, light_base_energies):
             light.set_energy(base_energy * np.random.uniform(1 - RANDOM_RANGE, 1 + RANDOM_RANGE))
+            light.set_color(light_color)
 
-        # Randomize object positions by dropping them onto the table with physics
-        bproc.object.sample_poses(
-            objects_to_sample=target_objects,
-            sample_pose_func=sample_pose_func,
-            max_tries=10,
-        )
-        bproc.object.simulate_physics_and_fix_final_poses(
-            min_simulation_time=2,
-            max_simulation_time=10,
-            check_object_interval=1,
-        )
+        # Randomize camera exposure +-0.5 stops around the base (applied in post as 2^exposure)
+        exposure = BASE_EXPOSURE + np.random.uniform(-0.7, 0.7)
+        
+        # # Randomize object positions by dropping them onto the table with physics
+        # bproc.object.sample_poses(
+        #     objects_to_sample=target_objects,
+        #     sample_pose_func=sample_pose_func,
+        #     max_tries=10,
+        # )
+        # bproc.object.simulate_physics_and_fix_final_poses(
+        #     min_simulation_time=2,
+        #     max_simulation_time=10,
+        #     check_object_interval=1,
+        # )
 
         # Camera: 20% sampled on the dome, 80% the fixed calibrated pose
         if np.random.rand() < CAMERA_SAMPLE_PROB:
             sample_camera_pose(target_objects, table_center)
         else:
             set_camera()
-
+        continue
         data = bproc.renderer.render()
+        # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
+        noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
+        data["colors"] = apply_image_adjustments(data["colors"], noise_sigma=noise_sigma, exposure=exposure, gamma_contrast=True)
 
-        # Apply calibrated gamma/contrast and add noise (Blender post-processing already disabled)
-        data["colors"] = apply_image_adjustments(data["colors"], gamma_contrast=False)
+
 
         coco = False
+        
         if coco:
+            print("Writing COCO annotations...")
             bproc.writer.write_coco_annotations(
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/coco"),
                 instance_segmaps=data["instance_segmaps"],
@@ -255,6 +302,7 @@ def main():
                 color_file_format="PNG",
             )
         else:
+            print("Writing BOP annotations...")
             bproc.writer.write_bop(
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
                 target_objects=target_objects,
@@ -264,6 +312,14 @@ def main():
                 annotation_unit="mm",
                 
             )
+        
+        # exopusure value, noise sigma, temperature value, gamma_contrast
+        print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
+        print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
+        print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
+        print(f"Iteration {i}: Blur: {blur:.4f}")
+        print(f"Iteration {it + 1}/{NUM_ITERATIONS} complete.......")
+
 
 
 
