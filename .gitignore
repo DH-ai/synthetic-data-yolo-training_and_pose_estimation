@@ -154,3 +154,5 @@ eval/
 
 # Miscellaneous
 _untracked_blenderProc_source/
+# ssh file /
+*.pem
