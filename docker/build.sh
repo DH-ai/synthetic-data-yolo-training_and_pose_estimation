@@ -8,3 +8,4 @@ IMAGE="${IMAGE:-blenderproc-datagen:latest}"
 
 docker build -t "${IMAGE}" .
 echo "Built ${IMAGE}"
+

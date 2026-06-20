@@ -265,24 +265,24 @@ def main():
         # Randomize camera exposure +-0.5 stops around the base (applied in post as 2^exposure)
         exposure = BASE_EXPOSURE + np.random.uniform(-0.7, 0.7)
         
-        # # Randomize object positions by dropping them onto the table with physics
-        # bproc.object.sample_poses(
-        #     objects_to_sample=target_objects,
-        #     sample_pose_func=sample_pose_func,
-        #     max_tries=10,
-        # )
-        # bproc.object.simulate_physics_and_fix_final_poses(
-        #     min_simulation_time=2,
-        #     max_simulation_time=10,
-        #     check_object_interval=1,
-        # )
+        # Randomize object positions by dropping them onto the table with physics
+        bproc.object.sample_poses(
+            objects_to_sample=target_objects,
+            sample_pose_func=sample_pose_func,
+            max_tries=10,
+        )
+        bproc.object.simulate_physics_and_fix_final_poses(
+            min_simulation_time=2,
+            max_simulation_time=10,
+            check_object_interval=1,
+        )
 
         # Camera: 20% sampled on the dome, 80% the fixed calibrated pose
         if np.random.rand() < CAMERA_SAMPLE_PROB:
             sample_camera_pose(target_objects, table_center)
         else:
             set_camera()
-        continue
+        
         data = bproc.renderer.render()
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
