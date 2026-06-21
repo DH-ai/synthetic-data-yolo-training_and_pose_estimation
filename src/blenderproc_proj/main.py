@@ -138,8 +138,8 @@ def sample_camera_pose(targets, table_center)->None:
     bproc.camera.set_intrinsics_from_K_matrix(K, WIDTH, HEIGHT)
 
     radius = float(np.linalg.norm(np.array(Test_pose)[:3, 3]))
-    print(f"Sampling camera pose on a dome of radius {radius:.3f} m centered at {table_center}")
-    print(f"Dist above center: {CIRCLE_TOP_CONST * radius:.3f} m (top {100 * (1 - CIRCLE_TOP_CONST ** 2):.1f}% of the dome)")
+    # print(f"Sampling camera pose on a dome of radius {radius:.3f} m centered at {table_center}")
+    # print(f"Dist above center: {CIRCLE_TOP_CONST * radius:.3f} m (top {100 * (1 - CIRCLE_TOP_CONST ** 2):.1f}% of the dome)")
     location = bproc.sampler.part_sphere(
         center=table_center,
         radius=radius,
@@ -298,7 +298,6 @@ def main():
 
         t_render = time.time()
         data = bproc.renderer.render()
-        print(data.keys())
         t_render = time.time() - t_render
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
@@ -337,13 +336,6 @@ def main():
         else:            
             writer = "BOP"
 
-
-
-        print(view_layer.use_pass_z) # True
-        print(view_layer.use_pass_normal) # Truw    
-        print(view_layer.use_pass_vector) # False
-        print(view_layer.use_pass_cryptomatte_object) # False 
-        print(view_layer.use_pass_cryptomatte_material) # False
         print(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
         print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
