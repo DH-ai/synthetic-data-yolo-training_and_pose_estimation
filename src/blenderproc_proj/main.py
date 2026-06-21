@@ -6,12 +6,13 @@ import numpy as np
 import cv2
 import logging
 import sys
+import warnings
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
 
 
 def setup_file_logger(path: str = LOG_PATH) -> None:
-    """Configure root logger to write only to a file (no console output)."""
+    """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
     root.setLevel(logging.ERROR)
 
@@ -25,6 +26,7 @@ def setup_file_logger(path: str = LOG_PATH) -> None:
     fh.setFormatter(fmt)
 
     root.addHandler(fh)
+    logging.captureWarnings(True)
 
 
 def _excepthook(exc_type, exc_value, exc_tb) -> None:
@@ -33,16 +35,11 @@ def _excepthook(exc_type, exc_value, exc_tb) -> None:
     sys.exit(1)
 
 
-# Configure logging and suppress console output
 try:
     setup_file_logger()
     sys.excepthook = _excepthook
-    # Redirect stdout/stderr to devnull so nothing is printed to console
-    devnull = open(os.devnull, "w")
-    sys.stdout = devnull
-    sys.stderr = devnull
+    warnings.simplefilter("default")
 except Exception:
-    # If setup fails, ensure at least the excepthook is set
     try:
         sys.excepthook = _excepthook
     except Exception:
@@ -61,7 +58,7 @@ BASE_EXPOSURE = 0.0    # Blender exposure offset base; jittered +-0.5 each itera
 NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
 INWARD_FRACTION = 0.8       # drop objects only within the inner 80% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
-SPAWN_HEIGHT_STAGGER = 0.024  # extra random height per object so overlapping footprints don't collide at spawn
+SPAWN_HEIGHT_STAGGER = 0.004  # extra random height per object so overlapping footprints don't collide at spawn
 CAMERA_SAMPLE_PROB = 0    # 10% of the time sample the camera, 80% use the fixed pose
 CIRCLE_TOP_CONST = 0.999   # y-threshold for the top 0.2% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
@@ -203,14 +200,56 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("blender_files/moved_v9.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v10.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
-    bpy.context.scene.use_nodes = False
-    bpy.context.scene.render.use_compositing = False
     view_layer = bpy.context.view_layer
     view_layer.use_pass_normal = False
+    
+    
+    # scene1 = bpy.context.scene
+    # print("use_nodes:", scene1.use_nodes)
+    # if scene1.node_tree:
+    #     for node in scene1.node_tree.nodes:
+    #         print(node.name, node.bl_idname)
+
+    # if scene1.node_tree:
+    #     for node in scene1.node_tree.nodes:
+    #         if node.bl_idname == "CompositorNodeDenoise":
+    #             scene1.node_tree.nodes.remove(node)
+    #             print("Removed Denoise node from compositor.")
+    bpy.context.scene.use_nodes = False
+    bpy.context.scene.render.use_compositing = False
+    # scene1.node_tree.nodes.clear()
+
+
+
+
+
+    tree = bpy.context.scene.node_tree
+
+    rlayers = next(n for n in tree.nodes
+                if n.bl_idname == "CompositorNodeRLayers")
+
+    comp = next(n for n in tree.nodes
+                if n.bl_idname == "CompositorNodeComposite")
+
+    denoise = next(n for n in tree.nodes
+                if n.bl_idname == "CompositorNodeDenoise")
+
+    tree.links.new(
+        rlayers.outputs["Image"],
+        comp.inputs["Image"]
+    )
+
+    tree.nodes.remove(denoise)
+
+
+
+
+
+    
     normal_obj = []
     for obj in scene:
         if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
@@ -293,10 +332,12 @@ def main():
     # bproc.renderer.set_output_format(view_transform="Standard")
     # bproc.renderer.set_render_devices(["GPU"])
     bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
-    bproc.renderer.set_max_amount_of_samples(128)
+    # bproc.renderer.set_max_amount_of_samples(128)
     bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
     avge_time = 0.0
+
+    
 
     for it in range(NUM_ITERATIONS):
         # Reset keyframes so camera poses do not accumulate across iterations
