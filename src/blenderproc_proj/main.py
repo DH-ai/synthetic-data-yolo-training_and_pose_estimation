@@ -332,7 +332,7 @@ def main():
     # bproc.renderer.set_output_format(view_transform="Standard")
     # bproc.renderer.set_render_devices(["GPU"])
     bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
-    # bproc.renderer.set_max_amount_of_samples(128)
+    bproc.renderer.set_max_amount_of_samples(128)
     bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
     avge_time = 0.0
