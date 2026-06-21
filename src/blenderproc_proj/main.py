@@ -252,6 +252,7 @@ def main():
     bproc.renderer.set_max_amount_of_samples(128)
     bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
+    avge_time = 0.0
 
     for it in range(NUM_ITERATIONS):
         # Reset keyframes so camera poses do not accumulate across iterations
@@ -337,10 +338,12 @@ def main():
             writer = "BOP"
 
         print(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
+        print(f"Average time per iteration: {avge_time / NUM_ITERATIONS:.2f} s")
         print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
         print(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
+        avge_time += t_render + t_writer
 
 
 
