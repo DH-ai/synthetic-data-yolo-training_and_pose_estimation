@@ -9,6 +9,7 @@ import sys
 import warnings
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
+LAST_RUN_STATE = None
 
 
 def setup_file_logger(path: str = LOG_PATH) -> None:
@@ -33,6 +34,22 @@ def _excepthook(exc_type, exc_value, exc_tb) -> None:
     """Handle uncaught exceptions by logging them to file and exiting silently."""
     logging.getLogger().error("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
     sys.exit(1)
+
+
+def append_run_summary(state=None, path: str = LOG_PATH) -> None:
+    """Append the last known run state to the log file once at exit."""
+    if state is None:
+        state = LAST_RUN_STATE
+
+    if not state:
+        return
+
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write("\n")
+        handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} INFO: Final run state\n")
+        handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} INFO: Iteration {state['iteration']}/{NUM_ITERATIONS} complete.......\n")
+        handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} INFO: Average time per iteration: {state['average_time']:.2f} s\n")
+        handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} INFO: Writer: {state['writer']}\n")
 
 
 try:
@@ -198,7 +215,7 @@ def sample_camera_pose(targets, table_center)->None:
 
 
 def main():
-
+    global LAST_RUN_STATE
 
     scene = bproc.loader.load_blend("blender_files/moved_v10.blend",
                                 data_blocks="objects",
@@ -339,7 +356,7 @@ def main():
 
     
 
-    for it in range(NUM_ITERATIONS):
+    for i in range(1, NUM_ITERATIONS + 1):
         # Reset keyframes so camera poses do not accumulate across iterations
         # continue
         bproc.utility.reset_keyframes()
@@ -429,13 +446,25 @@ def main():
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
         print(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
-        i += 1
+
+        LAST_RUN_STATE = {
+            "iteration": i,
+            "average_time": avge_time / i,
+            "writer": writer,
+        }
 
 
 
 
 if __name__=='__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        logging.exception("Unhandled exception in application")
+        append_run_summary()
+        sys.exit(1)
+    else:
+        append_run_summary()
     
  
 
