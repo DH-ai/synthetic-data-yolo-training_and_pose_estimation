@@ -45,7 +45,7 @@ Test_pose = [
         [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]
     ]
 
-
+bpy.context.scene.use_nodes = False
 def kelvin_to_rgb(temp_k: float):
     """Convert a color temperature in Kelvin to a normalized RGBA color.
 
