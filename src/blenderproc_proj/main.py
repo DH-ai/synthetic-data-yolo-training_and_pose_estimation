@@ -158,7 +158,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("blender_files/moved_v3.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v7.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -286,7 +286,7 @@ def main():
         data = bproc.renderer.render()
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
-        data["colors"] = apply_image_adjustments(data["colors"], noise_sigma=noise_sigma, exposure=exposure, gamma_contrast=True)
+        data["colors"] = apply_image_adjustments(data["colors"], noise_sigma=noise_sigma, exposure=exposure, gamma_contrast=False)
 
 
 
