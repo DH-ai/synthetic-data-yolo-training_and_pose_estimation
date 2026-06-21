@@ -13,7 +13,7 @@ BASE_EXPOSURE = 0.0    # Blender exposure offset base; jittered +-0.5 each itera
 
 # --- Data generation config ---
 # Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
-NUM_ITERATIONS = int(os.environ.get("JJ", "1"))
+NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
 INWARD_FRACTION = 0.8       # drop objects only within the inner 80% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
 SPAWN_HEIGHT_STAGGER = 0.024  # extra random height per object so overlapping footprints don't collide at spawn
