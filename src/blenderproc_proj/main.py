@@ -4,6 +4,50 @@ import os
 import bpy
 import numpy as np
 import cv2
+import logging
+import sys
+
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
+
+
+def setup_file_logger(path: str = LOG_PATH) -> None:
+    """Configure root logger to write only to a file (no console output)."""
+    root = logging.getLogger()
+    root.setLevel(logging.ERROR)
+
+    # Remove any existing handlers (avoid console handlers)
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    fh = logging.FileHandler(path, mode="a", encoding="utf-8")
+    fh.setLevel(logging.ERROR)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    fh.setFormatter(fmt)
+
+    root.addHandler(fh)
+
+
+def _excepthook(exc_type, exc_value, exc_tb) -> None:
+    """Handle uncaught exceptions by logging them to file and exiting silently."""
+    logging.getLogger().error("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
+    sys.exit(1)
+
+
+# Configure logging and suppress console output
+try:
+    setup_file_logger()
+    sys.excepthook = _excepthook
+    # Redirect stdout/stderr to devnull so nothing is printed to console
+    devnull = open(os.devnull, "w")
+    sys.stdout = devnull
+    sys.stderr = devnull
+except Exception:
+    # If setup fails, ensure at least the excepthook is set
+    try:
+        sys.excepthook = _excepthook
+    except Exception:
+        pass
+
 
 bproc.init()
 GAMMA = 0.712
@@ -159,7 +203,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("blender_files/moved_v8.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v9.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -337,13 +381,14 @@ def main():
         else:            
             writer = "BOP"
 
+        avge_time += t_render + t_writer
         print(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
-        print(f"Average time per iteration: {avge_time / NUM_ITERATIONS:.2f} s")
+        print(f"Average time per iteration: {avge_time / i:.2f} s")
         print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
         print(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
-        avge_time += t_render + t_writer
+        i += 1
 
 
 
