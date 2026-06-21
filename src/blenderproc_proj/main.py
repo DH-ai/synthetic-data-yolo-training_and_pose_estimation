@@ -1,4 +1,5 @@
 import blenderproc as bproc
+import time
 import os
 import bpy
 import numpy as np
@@ -45,7 +46,6 @@ Test_pose = [
         [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]
     ]
 
-bpy.context.scene.use_nodes = False
 def kelvin_to_rgb(temp_k: float):
     """Convert a color temperature in Kelvin to a normalized RGBA color.
 
@@ -163,7 +163,10 @@ def main():
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
-
+    bpy.context.scene.use_nodes = False
+    bpy.context.scene.render.use_compositing = False
+    view_layer = bpy.context.view_layer
+    view_layer.use_pass_normal = False
     normal_obj = []
     for obj in scene:
         if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
@@ -204,13 +207,6 @@ def main():
     table[0].set_name("table")
 
     target_objects = triangle + semiC + heart
-
-
-    print("Active:", bpy.context.active_object)
-
-    print("Selected:")
-    for obj in bpy.context.selected_objects:
-        print(obj.name)
     # Collect lights already in the scene and remember their base energy for randomization
     lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
     light_base_energies = [light.get_energy() for light in lights]
@@ -254,7 +250,7 @@ def main():
     # bproc.renderer.set_render_devices(["GPU"])
     bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
     bproc.renderer.set_max_amount_of_samples(128)
-    bproc.renderer.engine = "CYCLES"
+    bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
 
     for it in range(NUM_ITERATIONS):
@@ -297,7 +293,13 @@ def main():
         else:
             set_camera()
         
+
+
+
+        t_render = time.time()
         data = bproc.renderer.render()
+        print(data.keys())
+        t_render = time.time() - t_render
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
         data["colors"] = apply_image_adjustments(data["colors"], noise_sigma=noise_sigma, exposure=exposure, gamma_contrast=False)
@@ -305,7 +307,7 @@ def main():
 
 
         coco = False
-        
+        t_writer = time.time()
         if coco:
             print("Writing COCO annotations...")
             bproc.writer.write_coco_annotations(
@@ -316,6 +318,7 @@ def main():
                 color_file_format="PNG",
             )
         else:
+            
             print("Writing BOP annotations...")
             bproc.writer.write_bop(
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
@@ -327,11 +330,25 @@ def main():
                 
             )
         
+        t_writer = time.time() - t_writer
         # exopusure value, noise sigma, temperature value, gamma_contrast
+        if coco:
+            writer = "COCO"
+        else:            
+            writer = "BOP"
+
+
+
+        print(view_layer.use_pass_z) # True
+        print(view_layer.use_pass_normal) # Truw    
+        print(view_layer.use_pass_vector) # False
+        print(view_layer.use_pass_cryptomatte_object) # False 
+        print(view_layer.use_pass_cryptomatte_material) # False
+        print(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
         print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
-        print(f"Iteration {it + 1}/{NUM_ITERATIONS} complete.......")
+        print(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
 
 
 
