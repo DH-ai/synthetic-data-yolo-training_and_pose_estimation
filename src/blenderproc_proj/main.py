@@ -1,5 +1,6 @@
 import blenderproc as bproc
 import os
+import bpy
 import numpy as np
 import cv2
 
@@ -12,7 +13,7 @@ BASE_EXPOSURE = 0.0    # Blender exposure offset base; jittered +-0.5 each itera
 
 # --- Data generation config ---
 # Number of scene/render iterations (data points). Overridable via the NUM_ITERATIONS env var (used by Docker).
-NUM_ITERATIONS = int(os.environ.get("NUM_ITERATIONS", "1"))
+NUM_ITERATIONS = int(os.environ.get("JJ", "1"))
 INWARD_FRACTION = 0.8       # drop objects only within the inner 80% of the table top
 SPAWN_HEIGHT_OFFSET = 0.02  # meters above the table top to spawn objects before the (flat) drop
 SPAWN_HEIGHT_STAGGER = 0.024  # extra random height per object so overlapping footprints don't collide at spawn
@@ -158,7 +159,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
 
 
-    scene = bproc.loader.load_blend("blender_files/moved_v7.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v8.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -166,7 +167,6 @@ def main():
     normal_obj = []
     for obj in scene:
         if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
-
 
     category = {
     "Triangle":1,
@@ -182,22 +182,35 @@ def main():
     heart = normal_obj[5:7]
 
     # Rename objects to the heart_1 / heart_2 convention and assign category ids
+    # Not renaiming the names as the new blend file already has the correct names set
     for i, obj in enumerate(triangle):
-        obj.set_name(f"triangle_{i + 1}")
+        print(obj.get_name())
+        # obj.set_name(f"triangle_{i + 1}")
+        # print("setting name",obj.get_name())
         obj.set_cp("category_id", category["Triangle"])
-        print(obj.get_name())
+
     for i, obj in enumerate(semiC):
-        obj.set_name(f"semicircle_{i + 1}")
+        print(obj.get_name())
+        # obj.set_name(f"semicircle_{i + 1}")
+        # print("setting name",obj.get_name())
         obj.set_cp("category_id", category["SemiC"])
-        print(obj.get_name())
+
     for i, obj in enumerate(heart):
-        obj.set_name(f"heart_{i + 1}")
-        obj.set_cp("category_id", category["Heart"])
         print(obj.get_name())
+        # obj.set_name(f"heart_{i + 1}")
+        # print("setting name",obj.get_name())
+
+        obj.set_cp("category_id", category["Heart"])
     table[0].set_name("table")
 
     target_objects = triangle + semiC + heart
 
+
+    print("Active:", bpy.context.active_object)
+
+    print("Selected:")
+    for obj in bpy.context.selected_objects:
+        print(obj.name)
     # Collect lights already in the scene and remember their base energy for randomization
     lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
     light_base_energies = [light.get_energy() for light in lights]
@@ -246,6 +259,7 @@ def main():
 
     for it in range(NUM_ITERATIONS):
         # Reset keyframes so camera poses do not accumulate across iterations
+        # continue
         bproc.utility.reset_keyframes()
 
         # Randomize HDRI strength (+-30%) and re-apply the background
