@@ -1,7 +1,7 @@
 import blenderproc as bproc
 import time
 import os
-import bpy
+import bpy # type: ignore
 import numpy as np
 import cv2
 import logging
