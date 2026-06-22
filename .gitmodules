@@ -7,3 +7,6 @@
 [submodule "src/bop"]
 	path = src/bop
 	url = https://github.com/thodan/bop_toolkit.git
+[submodule "src/gdrnpp"]
+	path = src/gdrnpp
+	url = https://github.com/shanice-l/gdrnpp_bop2022.git
