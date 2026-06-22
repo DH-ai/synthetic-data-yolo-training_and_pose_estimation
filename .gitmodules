@@ -1,0 +1,3 @@
+[submodule "src/gdrnpp"]
+	path = src/gdrnpp
+	url = https://github.com/DH-ai/gdrnpp_bop2022
