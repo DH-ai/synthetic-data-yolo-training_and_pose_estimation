@@ -40,7 +40,7 @@ conda/
 *.pb
 weights/
 checkpoints/
-models/
+# models/  # removing as we need them on aws for training and inference
 
 
 
@@ -93,13 +93,12 @@ test/
 
 # 3D Model / Mesh formats (FoundationPose / 6D Pose)
 *.ply
-# *.obj
+*.obj
 *.stl
 *.pcd
-# *.mtl
-
-
-
+*.mtl
+*.3mf
+!assets/models/*.ply
 
 # Video / Image / Raw Data files
 *.mp4
