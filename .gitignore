@@ -99,6 +99,7 @@ test/
 *.mtl
 *.3mf
 !assets/models/*.ply
+!src/blenderproc_proj/output/bop/models/*
 
 # Video / Image / Raw Data files
 *.mp4
@@ -130,7 +131,7 @@ ultralytics/
 # ===================================================
 # FoundationPose / Inference Outputs
 # ===================================================
-output/
+# output/
 outputs/
 demo_results/
 debug/
