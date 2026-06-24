@@ -156,6 +156,7 @@ eval/
 _untracked_blenderProc_source/
 # ssh file /
 *.pem
+aws_instance/
 
 
 #table texture png
