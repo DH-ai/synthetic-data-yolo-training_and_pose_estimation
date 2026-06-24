@@ -1,12 +1,26 @@
 import trimesh
 import numpy as np
 import os 
+import json 
+
 
 objs =[
-    "heart",
-    "semicircle",
-    "triangle",
+    "obj_000001",
+    "obj_000002",
+    "obj_000003",
 ]
+
+
+class ModelInfo:
+    def __init__(self, diameter, min_x, min_y, min_z, size_x, size_y, size_z):
+        self.diameter = diameter
+        self.min_x = min_x
+        self.min_y = min_y
+        self.min_z = min_z
+        self.size_x = size_x
+        self.size_y = size_y
+        self.size_z = size_z
+model_dict  = {}
 
 for obj in objs:
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"/output/bop/models/{obj}.ply")
@@ -47,3 +61,15 @@ for obj in objs:
     )
 
     print("diameter", diameter)
+
+    model_info = ModelInfo(diameter, mins[0], mins[1], mins[2], size[0], size[1], size[2])
+    model_dict[objs.index(obj) + 1] = model_info.__dict__
+
+
+# print (model_dict)
+print("writing model info to json file")
+with open(os.path.dirname(os.path.abspath(__file__)) + "/output/bop/models/models_info.json", 'w') as f:
+    # clean the file before writing
+    f.truncate(0)
+    
+    json.dump(model_dict, f, indent=4)
