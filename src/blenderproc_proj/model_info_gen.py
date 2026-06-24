@@ -3,11 +3,24 @@ import numpy as np
 import os 
 
 objs =[
-    heart_shape.on
+    "heart",
+    "semicircle",
+    "triangle",
 ]
 
 for obj in objs:
-    mesh = trimesh.load(f"/assets/models/{obj}.ply")
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"/output/bop/models/{obj}.ply")
+
+
+    path = os.path.dirname(os.path.abspath(__file__)) + f"/output/bop/models/{obj}.ply"
+    # print(path)
+    if os.path.exists(path) is False:
+        print(f"Mesh file does not exist: {path}")
+        continue
+    # print(f"Loading mesh from: {path}")
+    with open(path, 'rb') as f:
+        mesh = trimesh.load(f, file_type='ply')
+    # mesh = trimesh.load(path)
 
     verts = mesh.vertices
 
@@ -17,6 +30,7 @@ for obj in objs:
     size = maxs - mins
 
     print(f"Object: {obj}")
+    print(mesh.bounds)
     print("min_x", mins[0])
     print("min_y", mins[1])
     print("min_z", mins[2])
