@@ -40,6 +40,7 @@ conda/
 *.pb
 weights/
 checkpoints/
+*.pkl
 # models/  # removing as we need them on aws for training and inference
 
 
@@ -100,6 +101,8 @@ test/
 *.3mf
 !assets/models/*.ply
 !src/blenderproc_proj/output/bop/models/*
+*.pkl 
+# adding it later 
 
 # Video / Image / Raw Data files
 *.mp4
