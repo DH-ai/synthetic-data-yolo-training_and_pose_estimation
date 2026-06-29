@@ -1,0 +1,288 @@
+{
+  "rgb_image_20260626_181413_164.png": {
+    "position": [
+      0.914,
+      0.0925,
+      0.6207
+    ],
+    "wpr_deg": [
+      -24.958,
+      10.975,
+      49.659
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181450_324.png": {
+    "position": [
+      0.914,
+      0.250,
+      0.6207
+    ],
+    "wpr_deg": [
+      -24.958,
+      10.975,
+      49.659
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181527_549.png": {
+    "position": [
+      0.8807,
+      0.2132,
+      0.5865
+    ],
+    "wpr_deg": [
+      -14.092,
+      -2.042,
+      50.513
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181607_276.png": {
+    "position": [
+      0.899634,
+      0.217,
+      0.649
+    ],
+    "wpr_deg": [
+      0.809,
+      10.079,
+      51.568
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181656_252.png": {
+    "position": [
+      0.899634,
+      0.292892,
+      0.612116
+    ],
+    "wpr_deg": [
+      9.21,
+      6.26,
+      25.164
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181734_188.png": {
+    "position": [
+      0.899630,
+      0.369049,
+      0.612098
+    ],
+    "wpr_deg": [
+      40.231,
+      -8.506,
+      24.537
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_181822_732.png": {
+    "position": [
+      0.899630,
+      0.163129,
+      0.688418
+    ],
+    "wpr_deg": [
+      40.231,
+      -8.506,
+      77.846
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182000_398.png": {
+    "position": [
+      0.936149,
+      0.161372,
+      0.698399
+    ],
+    "wpr_deg": [
+      -17.884,
+      -14.784,
+      90.663
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182113_358.png": {
+    "position": [
+      0.999169,
+      0.165772,
+      0.545397
+    ],
+    "wpr_deg": [
+      10.439,
+      -13.387,
+      19.648
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182222_310.png": {
+    "position": [
+      0.896431,
+      0.082173,
+      0.594213
+    ],
+    "wpr_deg": [
+      5.138,
+      2.078,
+      71.358
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182245_589.png": {
+    "position": [
+      0.822991,
+      0.253053,
+      0.594213
+    ],
+    "wpr_deg": [
+      5.138,
+      2.078,
+      71.358
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182325_796.png": {
+    "position": [
+      0.822991,
+      0.102813,
+      0.594213
+    ],
+    "wpr_deg": [
+      5.138,
+      2.078,
+      71.359
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182342_549.png": {
+    "position": [
+      0.897627,
+      0.161372,
+      0.476841
+    ],
+    "wpr_deg": [
+      5.139,
+      2.078,
+      71.356
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182554_933.png": {
+    "position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "wpr_deg": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_182709_669.png": {
+    "position": [
+      0.897627,
+      0.161372,
+      0.690224
+    ],
+    "wpr_deg": [
+      5.139,
+      2.078,
+      71.356
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183016_357.png": {
+    "position": [
+      0.900986,
+      0.191331,
+      0.690204
+    ],
+    "wpr_deg": [
+      -3.402,
+      20.050,
+      43.546
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183031_253.png": {
+    "position": [
+      0.942904,
+      0.229405,
+      0.670935
+    ],
+    "wpr_deg": [
+      -27.869,
+      54.117,
+      -0.046
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183131_805.png": {
+    "position": [
+      0.9429,
+      0.2294,
+      0.509644
+    ],
+    "wpr_deg": [
+      16.353,
+      17.867,
+      16.561
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183219_950.png": {
+    "position": [
+      0.942895,
+      0.396985,
+      0.509570
+    ],
+    "wpr_deg": [
+      16.352,
+      17.874,
+      16.557
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183318_485.png": {
+    "position": [
+      0.9429,
+      0.289217,
+      0.703557
+    ],
+    "wpr_deg": [
+      26.452,
+      43.144,
+      21.821
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183429_806.png": {
+    "position": [
+      0.947095,
+      0.219423,
+      0.699684
+    ],
+    "wpr_deg": [
+      -22.979,
+      31.423,
+      -14.343
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  },
+  "rgb_image_20260626_183514_950.png": {
+    "position": [
+      0.947093,
+      0.219132,
+      0.504097
+    ],
+    "wpr_deg": [
+      -4.590,
+      1.731,
+      -5.131
+    ],
+    "_comment": "RAW base2gripper. position in METERS, wpr in DEGREES. Loader inverts to gripper2base."
+  }
+}
