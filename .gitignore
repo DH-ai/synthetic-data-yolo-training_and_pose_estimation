@@ -21,9 +21,6 @@ conda/
 
 
 
-
-
-
 # ===================================================
 # Deep Learning Weights & Exports
 # ===================================================
@@ -119,6 +116,7 @@ hdri_hugin/  # this is folder where I made HDRI
 
 
 
+
 # ===================================================
 # YOLO Specific
 # ===================================================
@@ -164,3 +162,8 @@ aws_instance/
 
 #table texture png
 !assets/table_texture/TSS Aeromodelling.png
+
+# test images 
+!real_img_test/*.png
+
+
