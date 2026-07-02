@@ -80,7 +80,7 @@ def draw_pose(image, rvec, tvec, K, dist):
 
 def process_json(dataset_type:str="bop"):
     if dataset_type == "bop":
-        scene_gt_path = DATASET_PATH / "train_pbr/000000/scene_gt.json"
+        scene_gt_path = DATASET_PATH / "train_pbr/000001/scene_gt.json"
         scene_gt_data = json.decoder.JSONDecoder().decode(open(scene_gt_path).read())
     
     return scene_gt_data
@@ -112,16 +112,17 @@ def bop_rvec_tvec(scene_gt_data, instance_id=0):
 def main(dataset:str="bop"):
     if dataset=="bop":
         json_obj = process_json(dataset)
-        i = 41
+        i = 2
 
-        img_path = DATASET_PATH / f"train_pbr/000000/rgb/0000{i}.png"
-        rvec_arr, tvec_arr, size = bop_rvec_tvec(json_obj, instance_id=i)
+        img_path = DATASET_PATH / f"train_pbr/000001/rgb/000000.png"
+        rvec_arr, tvec_arr, size = bop_rvec_tvec(json_obj, instance_id=0)
         
         #reading the image 
         img = cv2.imread(str(img_path))
         for i in range(size):
             draw_pose(img, rvec_arr[i], tvec_arr[i], K, dist)
         cv2.imshow("Pose Visualization", img)
+        cv2.imwrite("visualized pose", img)
         if cv2.waitKey(0) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
 

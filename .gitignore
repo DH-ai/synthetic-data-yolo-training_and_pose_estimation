@@ -40,7 +40,7 @@ checkpoints/
 *.pkl
 # models/  # removing as we need them on aws for training and inference
 
-
+inference_demo/
 
 
 
