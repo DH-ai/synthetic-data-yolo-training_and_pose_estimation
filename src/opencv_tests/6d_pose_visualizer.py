@@ -118,13 +118,14 @@ def main(dataset:str="bop"):
         rvec_arr, tvec_arr, size = bop_rvec_tvec(json_obj, instance_id=0)
         
         #reading the image 
+        
         img = cv2.imread(str(img_path))
         for i in range(size):
             draw_pose(img, rvec_arr[i], tvec_arr[i], K, dist)
-        cv2.imshow("Pose Visualization", img)
-        cv2.imwrite("visualized pose", img)
-        if cv2.waitKey(0) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
+        # cv2.imshow("Pose Visualization", img)
+        cv2.imwrite("visualized pose.png", img)
+        # if cv2.waitKey(0) & 0xFF == ord('q'):
+        #     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
