@@ -1,12 +1,22 @@
 import blenderproc as bproc
 import time
 import os
+
 import bpy # type: ignore
 import numpy as np
 import cv2
 import logging
 import sys
 import warnings
+import re
+
+# TODO: complete this comment for basic script flow 
+"""
+Follow this,
+place plate 
+
+
+"""
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
 LAST_RUN_STATE = None
@@ -15,7 +25,7 @@ LAST_RUN_STATE = None
 def setup_file_logger(path: str = LOG_PATH) -> None:
     """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
-    root.setLevel(logging.ERROR)
+    root.setLevel(logging.INFO)
 
     # Remove any existing handlers (avoid console handlers)
     for h in list(root.handlers):
@@ -80,6 +90,27 @@ CAMERA_SAMPLE_PROB = 0    # 10% of the time sample the camera, 80% use the fixed
 CIRCLE_TOP_CONST = 0.999   # y-threshold for the top 0.2% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
 RANDOM_RANGE = 0.5          # +-50% randomization range for HDRI strength and light energy
+DISTRACTOR_CATEGORY_ID = 0  # rendered in the image, ignored by BOP/COCO target labels
+OUTPUT_DIR =  "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/src/blenderproc/output/bop"
+
+# Keep these IDs aligned with src/gdrnpp/ref/mydataset.py and existing BOP models.
+TARGET_CLASSES = {
+    "heart": {
+        "id": 1,
+        "patterns": ("heart",),
+    },
+    "semi_circle": {
+        "id": 2,
+        "patterns": ("semi circle", "semicircle", "semi-circle", "semic"),
+    },
+    "triangle": {
+        "id": 3,
+        "patterns": ("triangle",),
+    },
+}
+
+SUPPORT_NAME_PATTERNS = ("table",) # Table for most cases, then drop the cavity plate, then randomize everything and then drop the objects on the table
+PRIMARY_SUPPORT_PRIORITY = ("plate","plates")
 
 K = np.array([[2481.9412514178307, 0.0, 978.95936559694314],
         [0.0, 2482.3917472975795, 629.72289542481894],
@@ -186,6 +217,154 @@ def set_camera()->None:
     bproc.camera.add_camera_pose(Test_pose)
 
 
+def _normalized_name(obj: bproc.types.MeshObject) -> str:
+    """
+    Normalizes a MeshObject's name by:
+    1. Converting to lowercase.
+    2. Replacing '_' and '-' with spaces.
+    3. Removing periods (.) and all numeric digits (0-9).
+    4. Stripping and collapsing any extra duplicate spaces.
+    """
+    name = obj.get_name().lower()
+    
+    # 1. Replace underscores and hyphens with spaces
+    name = name.replace("_", " ").replace("-", " ")
+    
+    # 2. Remove periods
+    name = name.replace(".", "")
+    
+    # 3. Remove all numeric digits (0 through 9)
+    name = re.sub(r"\d+", "", name)
+    
+    # 4. Collapse extra consecutive whitespace into single spaces and trim
+    return " ".join(name.split())
+
+def _matches_any(name: str, patterns) -> bool:
+    """Check if the normalized object name contains any of the given patterns."""
+
+    return any(name  in pattern for pattern in patterns)
+
+
+
+def _sort_by_name(objects):
+    return sorted(objects, key=lambda obj: obj.get_name())
+
+# TODO: Optimize this function, its running too mmany, for each n^2 complexity and space n
+def split_scene_objects(mesh_objects):
+    """Split meshes into labelled targets, passive support, and unlabelled moving negatives."""
+    target_objects_by_class = {class_name: [] for class_name in TARGET_CLASSES}
+    support_objects = []
+    distractor_objects = []
+    plate_obj = None  # Initialize plate_obj to None
+
+    for obj in mesh_objects:
+        name = _normalized_name(obj)
+        matched_target_class = None
+
+        # its to create class id for the target objects, and assign category_id to the object, so that it can be used to get final output
+        for class_name, class_cfg in TARGET_CLASSES.items():
+            # logging.info(f"  Checking against target class '{class_name}' with patterns: {class_cfg['patterns']} and config ")
+            if _matches_any(name, class_cfg["patterns"]):
+                matched_target_class = class_name
+                # logging.info(f"  Object '{obj.get_name()}' matched target class '{class_name}' with patterns: {class_cfg['patterns']}")
+                break
+        # set the category_id for the object
+        if matched_target_class is not None:
+            class_id = TARGET_CLASSES[matched_target_class]["id"]
+            obj.set_cp("category_id", class_id)
+            target_objects_by_class[matched_target_class].append(obj)
+
+        
+        # I have set SUPPORT_NAME_PATTERNS to only "table" so that it can be used to identify the table object, 
+        
+        elif _matches_any(name, SUPPORT_NAME_PATTERNS):
+            # logging.info(f"  Object'{obj.get_name()}' matched support patterns: {SUPPORT_NAME_PATTERNS}, name: {name}")
+            obj.set_cp("category_id", DISTRACTOR_CATEGORY_ID)
+            support_objects.append(obj)
+        
+        # for distractor obj also set category id to 0
+        elif _matches_any(name, PRIMARY_SUPPORT_PRIORITY):
+            # logging.info(f"  Object '{obj.get_name()}' matched plate pattern, name: {name}")
+            obj.set_cp("category_id", DISTRACTOR_CATEGORY_ID)
+            plate_obj = obj
+        else:
+            obj.set_cp("category_id", DISTRACTOR_CATEGORY_ID)
+            # logging.info(f"  Object '{obj.get_name()}' did not match any target or support patterns, assigned category_id {DISTRACTOR_CATEGORY_ID} and added to distractors.")
+            distractor_objects.append(obj)
+
+    target_objects = []
+    for class_name in sorted(TARGET_CLASSES, key=lambda key: TARGET_CLASSES[key]["id"]):
+        target_objects.extend(_sort_by_name(target_objects_by_class[class_name]))
+
+    missing_classes = [
+        class_name
+        for class_name, objects in target_objects_by_class.items()
+        if not objects
+    ]
+    if missing_classes:
+        raise RuntimeError(
+            "Could not find target meshes for classes: "
+            + ", ".join(missing_classes)
+            + ". Check object names in the .blend file."
+        )
+
+    if not support_objects:
+        raise RuntimeError(
+            "Could not find a passive support mesh. Expected a name containing one of: "
+            + ", ".join(SUPPORT_NAME_PATTERNS)
+        )
+
+    return target_objects_by_class, target_objects, support_objects, distractor_objects, plate_obj
+
+
+    
+
+def place_obj(moving_objects, plate_obj,max_tries=10, boundary=None):
+    
+    inner_min, inner_max, spawn_z, base_rotation_by_name = boundary
+
+    def sample_pose_func(obj: bproc.types.MeshObject):
+        x = np.random.uniform(inner_min[0], inner_max[0])
+        y = np.random.uniform(inner_min[1], inner_max[1])
+        # Stagger the spawn height so objects with overlapping XY footprints don't collide at spawn
+        z = spawn_z + np.random.uniform(0, SPAWN_HEIGHT_STAGGER)
+        obj.set_location([x, y, z])
+
+        # Keep the object's original face-up orientation, randomize only the in-plane (yaw) rotation
+        base_rot = base_rotation_by_name[obj.get_name()]
+        obj.set_rotation_euler([base_rot[0], base_rot[1], np.random.uniform(0, 2 * np.pi)])
+
+
+    # plate object placement 
+
+
+    bproc.object.sample_poses(
+    objects_to_sample=[plate_obj],
+    sample_pose_func=sample_pose_func,
+    max_tries=1,
+    )
+    bproc.object.simulate_physics_and_fix_final_poses(
+        min_simulation_time=2,
+        max_simulation_time=5,
+        check_object_interval=1,
+    )
+    # normal Object 
+    bproc.object.sample_poses(
+        objects_to_sample=moving_objects,
+        sample_pose_func=sample_pose_func,
+        max_tries=max_tries,
+        )
+    bproc.object.simulate_physics_and_fix_final_poses(
+        min_simulation_time=2,
+        max_simulation_time=10,
+        check_object_interval=1,
+    )
+    
+    
+    
+
+
+
 def sample_camera_pose(targets, table_center)->None:
     """Sample a camera pose on the top part of a dome centered at the table.
 
@@ -266,54 +445,39 @@ def main():
 
 
 
-    
-    normal_obj = []
-    for obj in scene:
-        if type(obj) ==bproc.types.MeshObject: normal_obj.append(obj)
+    normal_obj = [obj for obj in scene if isinstance(obj, bproc.types.MeshObject)]
+    (
+        target_objects_by_class,
+        target_objects,
+        support_objects,
+        distractor_objects,
+        plate_obj
+    ) = split_scene_objects(normal_obj)
+    moving_objects = target_objects + distractor_objects 
 
-    category = {
-    "Triangle":1,
-    "SemiC":2,
-    "Heart":3,
 
-    
-    }
+    # primary_support = choose_table_support(support_objects) No longer needed as only one supper objet is there
+    primary_support = support_objects[0]
+    logging.info(f"Primary support object: {primary_support.get_name()}") 
 
-    triangle = normal_obj[0:2]
-    table = normal_obj[2:3]
-    semiC = normal_obj[3:5]
-    heart = normal_obj[5:7]
 
-    # Rename objects to the heart_1 / heart_2 convention and assign category ids
-    # Not renaiming the names as the new blend file already has the correct names set
-    for i, obj in enumerate(triangle):
-        print(obj.get_name())
-        # obj.set_name(f"triangle_{i + 1}")
-        # print("setting name",obj.get_name())
-        obj.set_cp("category_id", category["Triangle"])
-
-    for i, obj in enumerate(semiC):
-        print(obj.get_name())
-        # obj.set_name(f"semicircle_{i + 1}")
-        # print("setting name",obj.get_name())
-        obj.set_cp("category_id", category["SemiC"])
-
-    for i, obj in enumerate(heart):
-        print(obj.get_name())
-        # obj.set_name(f"heart_{i + 1}")
-        # print("setting name",obj.get_name())
-
-        obj.set_cp("category_id", category["Heart"])
-    table[0].set_name("table")
-
-    target_objects = triangle + semiC + heart
+    logging.info("Scene object roles:")
+    for class_name in sorted(TARGET_CLASSES, key=lambda key: TARGET_CLASSES[key]["id"]):
+        class_id = TARGET_CLASSES[class_name]["id"]
+        names = ", ".join(obj.get_name() for obj in target_objects_by_class[class_name])
+        logging.info(f"  target {class_id} ({class_name}): {names}")
+    logging.info(f"  support: {', '.join(obj.get_name() for obj in support_objects)}")
+    logging.info(f"  primary support: {primary_support.get_name()}")
+    logging.info(
+        "  distractors: "
+        + (", ".join(obj.get_name() for obj in distractor_objects) if distractor_objects else "none")
+    )
     # Collect lights already in the scene and remember their base energy for randomization
     lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
     light_base_energies = [light.get_energy() for light in lights]
 
     # --- Physics drop setup ---
-    # Compute the table top height and the inner-90% XY region from the table bound box
-    table_bb = np.array(table[0].get_bound_box())
+    table_bb = np.array(primary_support.get_bound_box())
     table_top_z = float(table_bb[:, 2].max())
     xy_min = table_bb[:, :2].min(axis=0)
     xy_max = table_bb[:, :2].max(axis=0)
@@ -325,24 +489,16 @@ def main():
     spawn_z = table_top_z + SPAWN_HEIGHT_OFFSET
     table_center = [float(xy_center[0]), float(xy_center[1]), table_top_z]
 
-    # Remember each object's original (face-up) orientation so we only randomize the yaw
-    base_rotation_by_name = {obj.get_name(): np.array(obj.get_rotation_euler()) for obj in target_objects}
-
-    # Enable rigid bodies: targets are active (they fall), the table is passive
-    for obj in target_objects:
+    # Remember each moving object's original (face-up) orientation so we only randomize the yaw.
+    base_rotation_by_name = {obj.get_name(): np.array(obj.get_rotation_euler()) for obj in moving_objects}
+    base_rotation_by_name.update({plate_obj.get_name(): np.array(plate_obj.get_rotation_euler())})  # Include plate object
+    # Enable rigid bodies: labelled targets and negative distractors are active; supports are passive.
+    for obj in moving_objects:
         obj.enable_rigidbody(active=True)
-    table[0].enable_rigidbody(active=False, collision_shape="MESH")
+    for obj in support_objects:
+        obj.enable_rigidbody(active=False, collision_shape="MESH")
 
-    def sample_pose_func(obj: bproc.types.MeshObject):
-        x = np.random.uniform(inner_min[0], inner_max[0])
-        y = np.random.uniform(inner_min[1], inner_max[1])
-        # Stagger the spawn height so objects with overlapping XY footprints don't collide at spawn
-        z = spawn_z + np.random.uniform(0, SPAWN_HEIGHT_STAGGER)
-        obj.set_location([x, y, z])
 
-        # Keep the object's original face-up orientation, randomize only the in-plane (yaw) rotation
-        base_rot = base_rotation_by_name[obj.get_name()]
-        obj.set_rotation_euler([base_rot[0], base_rot[1], np.random.uniform(0, 2 * np.pi)])
 
     # --- Renderer config (set once) ---
     # Remove Blender's display post-processing (Filmic/AgX look) so only our gamma/contrast apply
@@ -355,10 +511,11 @@ def main():
     avge_time = 0.0
 
     
-
+    NUM_ITERATIONS =1
     for i in range(1, NUM_ITERATIONS + 1):
         # Reset keyframes so camera poses do not accumulate across iterations
         # continue
+        logging.info(f"Starting iteration {i}/{NUM_ITERATIONS}...")
         bproc.utility.reset_keyframes()
 
         # Randomize HDRI strength (+-30%) and re-apply the background
@@ -379,16 +536,8 @@ def main():
         exposure = BASE_EXPOSURE + np.random.uniform(-0.7, 0.7)
         
         # Randomize object positions by dropping them onto the table with physics
-        bproc.object.sample_poses(
-            objects_to_sample=target_objects,
-            sample_pose_func=sample_pose_func,
-            max_tries=10,
-        )
-        bproc.object.simulate_physics_and_fix_final_poses(
-            min_simulation_time=2,
-            max_simulation_time=10,
-            check_object_interval=1,
-        )
+        place_obj(moving_objects, plate_obj, max_tries=10, boundary=[inner_min, inner_max, spawn_z, base_rotation_by_name])
+
 
         # Camera: 20% sampled on the dome, 80% the fixed calibrated pose
         if np.random.rand() < CAMERA_SAMPLE_PROB:
@@ -398,7 +547,7 @@ def main():
         
 
 
-
+        # continue
         t_render = time.time()
         data = bproc.renderer.render()
         t_render = time.time() - t_render
@@ -411,7 +560,7 @@ def main():
         coco = False
         t_writer = time.time()
         if coco:
-            print("Writing COCO annotations...")
+            logging.info("Writing COCO annotations...")
             bproc.writer.write_coco_annotations(
                 output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/coco"),
                 instance_segmaps=data["instance_segmaps"],
@@ -420,10 +569,11 @@ def main():
                 color_file_format="PNG",
             )
         else:
-            
-            print("Writing BOP annotations...")
+          
+            logging.info("="*100)
+            logging.info(OUTPUT_DIR)
             bproc.writer.write_bop(
-                output_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output/bop"),
+                output_dir=OUTPUT_DIR,
                 target_objects=target_objects,
                 colors = data["colors"],
                 depths = data["depth"],
@@ -440,12 +590,12 @@ def main():
             writer = "BOP"
 
         avge_time += t_render + t_writer
-        print(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
-        print(f"Average time per iteration: {avge_time / i:.2f} s")
-        print(f"Iteration {i}: Exposure: {exposure:.2f} EV")
-        print(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
-        print(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
-        print(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
+        logging.info(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
+        logging.info(f"Average time per iteration: {avge_time / i:.2f} s")
+        logging.info(f"Iteration {i}: Exposure: {exposure:.2f} EV")
+        logging.info(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
+        logging.info(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
+        logging.info(f"Iteration {i}/{NUM_ITERATIONS} complete.......")
 
         LAST_RUN_STATE = {
             "iteration": i,
@@ -465,7 +615,3 @@ if __name__=='__main__':
         sys.exit(1)
     else:
         append_run_summary()
-    
- 
-
-    
