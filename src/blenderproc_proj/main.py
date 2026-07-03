@@ -25,7 +25,7 @@ LAST_RUN_STATE = None
 def setup_file_logger(path: str = LOG_PATH) -> None:
     """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
-    root.setLevel(logging.INFO)
+    root.setLevel(logging.debug)
 
     # Remove any existing handlers (avoid console handlers)
     for h in list(root.handlers):
@@ -91,7 +91,7 @@ CIRCLE_TOP_CONST = 0.999   # y-threshold for the top 0.2% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
 RANDOM_RANGE = 0.5          # +-50% randomization range for HDRI strength and light energy
 DISTRACTOR_CATEGORY_ID = 0  # rendered in the image, ignored by BOP/COCO target labels
-OUTPUT_DIR =  "/home/dhruv/obscureP/synthetic-data-yolo-training_and_pose_estimation/src/blenderproc/output/bop"
+OUTPUT_DIR =  os.environ.get("OUTPUT_DIR_BPROC", "src/blenderproc/output/bop")
 
 # Keep these IDs aligned with src/gdrnpp/ref/mydataset.py and existing BOP models.
 TARGET_CLASSES = {
@@ -242,7 +242,7 @@ def _normalized_name(obj: bproc.types.MeshObject) -> str:
 def _matches_any(name: str, patterns) -> bool:
     """Check if the normalized object name contains any of the given patterns."""
 
-    return any(name  in pattern for pattern in patterns)
+    return any(pattern in name for pattern in patterns)
 
 
 
@@ -313,12 +313,17 @@ def split_scene_objects(mesh_objects):
             "Could not find a passive support mesh. Expected a name containing one of: "
             + ", ".join(SUPPORT_NAME_PATTERNS)
         )
+    if plate_obj is None:
+        raise RuntimeError(
+            "Could not find the moving cavity/plate mesh. Expected a name containing one of: "
+            + ", ".join(PRIMARY_SUPPORT_PRIORITY)
+        )
 
     return target_objects_by_class, target_objects, support_objects, distractor_objects, plate_obj
 
 
     
-
+# TODO: Optimize this function, its running too mmany, for each n^2 complexity and space n
 def place_obj(moving_objects, plate_obj,max_tries=10, boundary=None):
     
     inner_min, inner_max, spawn_z, base_rotation_by_name = boundary
@@ -339,15 +344,15 @@ def place_obj(moving_objects, plate_obj,max_tries=10, boundary=None):
 
 
     bproc.object.sample_poses(
-    objects_to_sample=[plate_obj],
-    sample_pose_func=sample_pose_func,
-    max_tries=1,
+        objects_to_sample=[plate_obj],
+        sample_pose_func=sample_pose_func,
+        max_tries=max_tries,
     )
-    bproc.object.simulate_physics_and_fix_final_poses(
-        min_simulation_time=2,
-        max_simulation_time=5,
-        check_object_interval=1,
-    )
+    # bproc.object.simulate_physics_and_fix_final_poses(
+    #     min_simulation_time=2,
+    #     max_simulation_time=5,
+    #     check_object_interval=1,
+    # )
     # normal Object 
     bproc.object.sample_poses(
         objects_to_sample=moving_objects,
@@ -497,6 +502,8 @@ def main():
         obj.enable_rigidbody(active=True)
     for obj in support_objects:
         obj.enable_rigidbody(active=False, collision_shape="MESH")
+    plate_obj.enable_rigidbody(active=True, collision_shape="MESH")
+
 
 
 
@@ -510,9 +517,8 @@ def main():
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
     avge_time = 0.0
 
-    
     NUM_ITERATIONS =1
-    for i in range(1, NUM_ITERATIONS + 1):
+    for i in range(1, NUM_ITERATIONS +1):
         # Reset keyframes so camera poses do not accumulate across iterations
         # continue
         logging.info(f"Starting iteration {i}/{NUM_ITERATIONS}...")
@@ -579,6 +585,7 @@ def main():
                 depths = data["depth"],
                 color_file_format="PNG",
                 annotation_unit="mm",
+                # calc_mask_info_coco=True
                 
             )
         
