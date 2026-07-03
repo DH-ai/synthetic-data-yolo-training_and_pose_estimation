@@ -25,7 +25,7 @@ LAST_RUN_STATE = None
 def setup_file_logger(path: str = LOG_PATH) -> None:
     """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
-    root.setLevel(logging.debug)
+    root.setLevel(logging.DEBUG)
 
     # Remove any existing handlers (avoid console handlers)
     for h in list(root.handlers):
