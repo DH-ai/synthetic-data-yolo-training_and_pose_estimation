@@ -458,6 +458,13 @@ def main():
         distractor_objects,
         plate_obj
     ) = split_scene_objects(normal_obj)
+    for obj in target_objects:
+        bo = obj.blender_obj
+        print(
+            bo.name,
+            "library =", bo.library,
+            "override =", bo.override_library
+        )
     moving_objects = target_objects + distractor_objects 
 
 
@@ -553,7 +560,6 @@ def main():
         
 
 
-        # continue
         t_render = time.time()
         data = bproc.renderer.render()
         t_render = time.time() - t_render
@@ -585,7 +591,7 @@ def main():
                 depths = data["depth"],
                 color_file_format="PNG",
                 annotation_unit="mm",
-                # calc_mask_info_coco=True
+                calc_mask_info_coco=True
                 
             )
         
