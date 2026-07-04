@@ -167,3 +167,5 @@ aws_instance/
 !real_img_test/*.png
 
 
+# dataset
+output/

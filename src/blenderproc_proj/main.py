@@ -25,18 +25,26 @@ LAST_RUN_STATE = None
 def setup_file_logger(path: str = LOG_PATH) -> None:
     """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+    root.setLevel(logging.INFO)
 
     # Remove any existing handlers (avoid console handlers)
     for h in list(root.handlers):
         root.removeHandler(h)
 
+    fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+
+    # FILE HANDLER -> Only captures ERROR and CRITICAL
     fh = logging.FileHandler(path, mode="a", encoding="utf-8")
     fh.setLevel(logging.ERROR)
-    fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
     fh.setFormatter(fmt)
-
     root.addHandler(fh)
+
+    # CONSOLE (TERMINAL) HANDLER -> Captures INFO, WARNING, and ERROR
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)   # Lets you see progress in the terminal
+    ch.setFormatter(fmt)
+    root.addHandler(ch)
+
     logging.captureWarnings(True)
 
 
@@ -91,7 +99,7 @@ CIRCLE_TOP_CONST = 0.999   # y-threshold for the top 0.2% area of a unit circle
 HDRI_BASE_STRENGTH = 1.3    # base HDRI strength before randomization
 RANDOM_RANGE = 0.5          # +-50% randomization range for HDRI strength and light energy
 DISTRACTOR_CATEGORY_ID = 0  # rendered in the image, ignored by BOP/COCO target labels
-OUTPUT_DIR =  os.environ.get("OUTPUT_DIR_BPROC", "src/blenderproc/output/bop")
+OUTPUT_DIR =  os.environ.get("OUTPUT_DIR_BPROC", "src/output/bop")
 
 # Keep these IDs aligned with src/gdrnpp/ref/mydataset.py and existing BOP models.
 TARGET_CLASSES = {
@@ -397,6 +405,7 @@ def sample_camera_pose(targets, table_center)->None:
 
 def main():
     global LAST_RUN_STATE
+    logging.info("Running the generation loop for {}".format(NUM_ITERATIONS))
 
     scene = bproc.loader.load_blend("blender_files/moved_v11.blend",
                                 data_blocks="objects",
@@ -524,7 +533,7 @@ def main():
     bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0}) 
 
-    NUM_ITERATIONS =1
+    avge_time = 0.0
     for i in range(1, NUM_ITERATIONS +1):
         # Reset keyframes so camera poses do not accumulate across iterations
         # continue
@@ -563,13 +572,6 @@ def main():
         t_render = time.time()
         data = bproc.renderer.render()
 
-        # print(f"keys : {list(data.keys())}")
-        print(*(type(key) for key in data.keys()))
-        for key in list(data.keys()):
-            
-            print(f"key: {key}, shape: {data[key]}, dtype: {data[key]}")
-
-        # exit()
         t_render = time.time() - t_render
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
@@ -590,8 +592,6 @@ def main():
             )
         else:
           
-            logging.info("="*100)
-            logging.info(OUTPUT_DIR)
             bproc.writer.write_bop(
                 output_dir=OUTPUT_DIR,
                 target_objects=target_objects,
