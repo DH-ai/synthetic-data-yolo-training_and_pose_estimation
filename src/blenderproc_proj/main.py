@@ -21,7 +21,7 @@ place plate
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
 LAST_RUN_STATE = None
 
-
+# TODO: still not robust enought to catch all the errors
 def setup_file_logger(path: str = LOG_PATH) -> None:
     """Configure logging to write warnings and errors to a file only."""
     root = logging.getLogger()
@@ -252,9 +252,11 @@ def _sort_by_name(objects):
 # TODO: Optimize this function, its running too mmany, for each n^2 complexity and space n
 def split_scene_objects(mesh_objects):
     """Split meshes into labelled targets, passive support, and unlabelled moving negatives."""
-    target_objects_by_class = {class_name: [] for class_name in TARGET_CLASSES}
-    support_objects = []
-    distractor_objects = []
+
+
+    target_objects_by_class = {class_name: [] for class_name in TARGET_CLASSES} # created a dictionary with the class name 
+    support_objects = [] # In our case a table
+    distractor_objects = [] # everything wich is not target object and plate object and support_objects
     plate_obj = None  # Initialize plate_obj to None
 
     for obj in mesh_objects:
@@ -262,7 +264,7 @@ def split_scene_objects(mesh_objects):
         matched_target_class = None
 
         # its to create class id for the target objects, and assign category_id to the object, so that it can be used to get final output
-        for class_name, class_cfg in TARGET_CLASSES.items():
+        for class_name, class_cfg in TARGET_CLASSES.items(): # this loop is not necessary _match_any can have class name patterns and we can remove this 
             # logging.info(f"  Checking against target class '{class_name}' with patterns: {class_cfg['patterns']} and config ")
             if _matches_any(name, class_cfg["patterns"]):
                 matched_target_class = class_name
@@ -365,11 +367,6 @@ def place_obj(moving_objects, plate_obj,max_tries=10, boundary=None):
         check_object_interval=1,
     )
     
-    
-    
-
-
-
 def sample_camera_pose(targets, table_center)->None:
     """Sample a camera pose on the top part of a dome centered at the table.
 
@@ -401,7 +398,7 @@ def sample_camera_pose(targets, table_center)->None:
 def main():
     global LAST_RUN_STATE
 
-    scene = bproc.loader.load_blend("blender_files/moved_v10.blend",
+    scene = bproc.loader.load_blend("blender_files/moved_v11.blend",
                                 data_blocks="objects",
     obj_types=["mesh", "light"])
 
@@ -451,6 +448,7 @@ def main():
 
 
     normal_obj = [obj for obj in scene if isinstance(obj, bproc.types.MeshObject)]
+
     (
         target_objects_by_class,
         target_objects,
@@ -458,13 +456,8 @@ def main():
         distractor_objects,
         plate_obj
     ) = split_scene_objects(normal_obj)
-    for obj in target_objects:
-        bo = obj.blender_obj
-        print(
-            bo.name,
-            "library =", bo.library,
-            "override =", bo.override_library
-        )
+
+
     moving_objects = target_objects + distractor_objects 
 
 
@@ -474,21 +467,29 @@ def main():
 
 
     logging.info("Scene object roles:")
+    
     for class_name in sorted(TARGET_CLASSES, key=lambda key: TARGET_CLASSES[key]["id"]):
         class_id = TARGET_CLASSES[class_name]["id"]
         names = ", ".join(obj.get_name() for obj in target_objects_by_class[class_name])
         logging.info(f"  target {class_id} ({class_name}): {names}")
+
+    
     logging.info(f"  support: {', '.join(obj.get_name() for obj in support_objects)}")
     logging.info(f"  primary support: {primary_support.get_name()}")
     logging.info(
         "  distractors: "
         + (", ".join(obj.get_name() for obj in distractor_objects) if distractor_objects else "none")
     )
+
+
+
     # Collect lights already in the scene and remember their base energy for randomization
     lights = [obj for obj in scene if isinstance(obj, bproc.types.Light)]
     light_base_energies = [light.get_energy() for light in lights]
 
-    # --- Physics drop setup ---
+    # --- Physics drop setup --
+
+    # TODO: to implment a probability system to drop the objects over discs too, need to think about classifying them is in cavity
     table_bb = np.array(primary_support.get_bound_box())
     table_top_z = float(table_bb[:, 2].max())
     xy_min = table_bb[:, :2].min(axis=0)
@@ -508,9 +509,9 @@ def main():
     for obj in moving_objects:
         obj.enable_rigidbody(active=True)
     for obj in support_objects:
-        obj.enable_rigidbody(active=False, collision_shape="MESH")
-    plate_obj.enable_rigidbody(active=True, collision_shape="MESH")
-
+        obj.enable_rigidbody(active=False, collision_shape="MESH") # our table
+    plate_obj.enable_rigidbody(active=True)  # Enable the plate object as active rigid body
+    
 
 
 
@@ -521,8 +522,7 @@ def main():
     bproc.renderer.enable_depth_output(activate_antialiasing=False)  # for perfect depth maps without interpolation artifacts
     bproc.renderer.set_max_amount_of_samples(128)
     bproc.renderer.engine = "EEVEE"  # faster than Cycles and with good enough quality for our purposes
-    bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0})
-    avge_time = 0.0
+    bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0}) 
 
     NUM_ITERATIONS =1
     for i in range(1, NUM_ITERATIONS +1):
@@ -559,9 +559,17 @@ def main():
             set_camera()
         
 
-
+        # continue
         t_render = time.time()
         data = bproc.renderer.render()
+
+        # print(f"keys : {list(data.keys())}")
+        print(*(type(key) for key in data.keys()))
+        for key in list(data.keys()):
+            
+            print(f"key: {key}, shape: {data[key]}, dtype: {data[key]}")
+
+        # exit()
         t_render = time.time() - t_render
         # Per-iteration noise sigma sampled from uniform(0, NOISE_STD_MAX)
         noise_sigma = np.random.uniform(0.0, NOISE_STD_MAX)
