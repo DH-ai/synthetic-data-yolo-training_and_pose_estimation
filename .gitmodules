@@ -1,6 +1,7 @@
-[submodule "src/GDR"]
+[submodule "src/gdrnpp"]
 	path = src/gdrnpp
 	url = https://github.com/DH-ai/GDRNPP
 [submodule "src/detectron2"]
 	path = src/detectron2
 	url = https://github.com/facebookresearch/detectron2
+c
