@@ -7,11 +7,11 @@ import cv2
 
 IMAGE_ID = 0
 
-image_path = "output/aws_instance/000000.png"
+image_path = "src/blenderproc_proj/output/bop/train_pbr/000000/rgb/000000.png"
 
 gt_path = "src/blenderproc_proj/output/bop/train_pbr/000000/scene_gt_info.json"
 
-pred_path = "coco_instances_results.json"
+pred_path = "src/gdrnpp/output/yolox/bop_pbr/yolox_x_1920_augCozyAAEhsv_ranger_30_epochs_mydataset_pbr_mydataset_test_primesense/inference/mydataset_pbr_test/coco_instances_results.json"
 
 # ==========================
 
@@ -27,16 +27,16 @@ if img is None:
 with open(gt_path) as f:
     gt = json.load(f)
 
-for ann in gt[str(IMAGE_ID)]:
-    x, y, w, h = ann["bbox_visib"]
+# for ann in gt[str(IMAGE_ID)]:
+#     x, y, w, h = ann["bbox_visib"]
 
-    cv2.rectangle(
-        img,
-        (x, y),
-        (x + w, y + h),
-        (0, 255, 0),   # Green
-        2,
-    )
+#     cv2.rectangle(
+#         img,
+#         (x, y),
+#         (x + w, y + h),
+#         (0, 255, 0),   # Green
+#         2,
+#     )
 
 # --------------------------
 # Predictions
@@ -88,15 +88,16 @@ for pred in preds:
         (255, 0, 0),   # Blue
         3,
     )
+    out_path = "compare_image0.png"
+
+    display = cv2.resize(img, (960, 600))
+
+    cv2.imwrite(out_path, img)
+    # 
+    print("Saved:", out_path)
+    exit(0)
 
 # --------------------------
 # Save
 # --------------------------
 
-out_path = "compare_image0.png"
-
-# display = cv2.resize(img, (960, 600))
-
-cv2.imwrite(out_path, img)
-# 
-print("Saved:", out_path)
