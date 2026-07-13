@@ -1,0 +1,8 @@
+2026-07-13 06:18:38 ERROR: Unhandled exception in application
+Traceback (most recent call last):
+  File "/mnt/data/work/synthetic-data-yolo-training_and_pose_estimation/src/blenderproc_proj/main.py", line 645, in <module>
+    main()
+  File "/mnt/data/work/synthetic-data-yolo-training_and_pose_estimation/src/blenderproc_proj/main.py", line 628, in main
+    logging.info(f"Estimated time remaining: {_eta:.2f} s")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Unknown format code 'f' for object of type 'str'

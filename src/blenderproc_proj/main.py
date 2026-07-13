@@ -625,7 +625,7 @@ def main():
         _eta = eta(avge_time, i, NUM_ITERATIONS)
         logging.info(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
         logging.info(f"Average time per iteration: {avge_time / i:.2f} s")
-        logging.info(f"Estimated time remaining: {_eta:.2f} s")
+        logging.info(f"Estimated time remaining: {_eta} s")
         logging.info(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         logging.info(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         logging.info(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
