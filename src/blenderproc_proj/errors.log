@@ -6,3 +6,8 @@ Traceback (most recent call last):
     logging.info(f"Estimated time remaining: {_eta:.2f} s")
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ValueError: Unknown format code 'f' for object of type 'str'
+
+2026-07-13 18:17:54 INFO: Final run state
+2026-07-13 18:17:54 INFO: Iteration 4000/4000 complete.......
+2026-07-13 18:17:54 INFO: Average time per iteration: 0.00 s
+2026-07-13 18:17:54 INFO: Writer: BOP

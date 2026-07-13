@@ -639,7 +639,7 @@ def main():
 
         LAST_RUN_STATE = {
             "iteration": i,
-            "average_time": avge_time / i,
+            "average_time": avge_time , # thats why after 4000 iteration it became avg_time/i^2
             "writer": writer,
         }
 
