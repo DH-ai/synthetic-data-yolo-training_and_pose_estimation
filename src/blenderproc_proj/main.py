@@ -10,13 +10,7 @@ import sys
 import warnings
 import re
 
-# TODO: complete this comment for basic script flow 
-"""
-Follow this,
-place plate 
-
-
-"""
+#TODO; TURN OF ALL LOGGING AND HAVE A PROGRESS BAR VIA TQDM
 
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "errors.log")
 LAST_RUN_STATE = None
@@ -402,6 +396,23 @@ def sample_camera_pose(targets, table_center)->None:
     cam2world_matrix = bproc.math.build_transformation_mat(location, rotation_matrix)
     bproc.camera.add_camera_pose(cam2world_matrix)
 
+def eta(avg_t:float, iteration:int, num_iterations:int)->str:
+    # time the estimated time remaining
+    time_total = avg_t * (num_iterations)
+    time_remaining = time_total - (avg_t * iteration)
+
+    # Convert time remaining to a more readable format
+    if time_remaining < 60:
+        return f"{time_remaining:.1f} seconds"
+    elif time_remaining < 3600:
+        minutes = int(time_remaining // 60)
+        seconds = int(time_remaining % 60)
+        return f"{minutes} minutes, {seconds} seconds"
+    else:
+        hours = int(time_remaining // 3600)
+        minutes = int((time_remaining % 3600) // 60)
+        return f"{hours} hours, {minutes} minutes"
+    
 
 def main():
     global LAST_RUN_STATE
@@ -611,8 +622,10 @@ def main():
             writer = "BOP"
 
         avge_time += t_render + t_writer
+        _eta = eta(avge_time, i, NUM_ITERATIONS)
         logging.info(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
         logging.info(f"Average time per iteration: {avge_time / i:.2f} s")
+        logging.info(f"Estimated time remaining: {_eta:.2f} s")
         logging.info(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         logging.info(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         logging.info(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
