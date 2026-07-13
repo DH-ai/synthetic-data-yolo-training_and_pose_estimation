@@ -545,9 +545,11 @@ def main():
     bproc.renderer.enable_segmentation_output(map_by=["category_id", "instance", "name"],default_values={"category_id": 0}) 
 
     avge_time = 0.0
+    overall_time = 0.0
     for i in range(1, NUM_ITERATIONS +1):
         # Reset keyframes so camera poses do not accumulate across iterations
         # continue
+        t_start = time.time()
         logging.info(f"Starting iteration {i}/{NUM_ITERATIONS}...")
         bproc.utility.reset_keyframes()
 
@@ -621,11 +623,15 @@ def main():
         else:            
             writer = "BOP"
 
-        avge_time += t_render + t_writer
-        _eta = eta(avge_time, i, NUM_ITERATIONS)
+
+        total_time_render = t_render + t_writer
+        avge_time = total_time_render/i
+        overall_time += time.time()-t_start
+        avg_overall_time = overall_time/i
+        _eta = eta(avg_overall_time, i, NUM_ITERATIONS)
         logging.info(f"Iteration {i}: Render time: {t_render:.2f} s, {writer} write time: {t_writer:.2f} s")
-        logging.info(f"Average time per iteration: {avge_time / i:.2f} s")
-        logging.info(f"Estimated time remaining: {_eta} s")
+        logging.info(f"Average time per rendering_sim: {avge_time :.2f} s")
+        logging.info(f"Estimated time remainuing: {_eta} s")
         logging.info(f"Iteration {i}: Exposure: {exposure:.2f} EV")
         logging.info(f"Iteration {i}: Noise sigma: {noise_sigma:.4f}")
         logging.info(f"Iteration {i}: Light temp: {light_temp_k:.0f} K")
