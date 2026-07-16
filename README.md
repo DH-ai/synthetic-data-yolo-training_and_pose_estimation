@@ -1,5 +1,7 @@
 # Synthetic Data YOLO Training & Pose Estimation
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DH-ai/synthetic-data-yolo-training_and_pose_estimation)
+
 This repository contains the pipeline for generating synthetic datasets for object detection and 6D pose estimation. It uses **BlenderProc** to render photorealistic synthetic scenes (RGB + depth + segmentation masks + pose labels) and **GDRNPP** for 6D pose estimation, alongside YOLO for object detection. Datasets are produced in BOP format with simulation-based domain randomization for sim-to-real transfer.
 
 It's a part of a larger robot automation project to follow; please refer to [Fanuc Pick n Place](https://github.com/dh-ai/fanuc_pickn_place)
