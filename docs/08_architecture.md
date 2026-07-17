@@ -44,13 +44,15 @@ flowchart TD
     Integrity --> Split[Create independent test_pbr scenes]
     Split --> Registration[mydataset registration]
     Registration --> YTrain[YOLOX train and eval]
-    Registration --> GTrain[GDRN train and eval]
+    Registration --> GTrain[GDRN training with pose ground truth]
     YTrain --> RawDet[COCO or BOP detection list]
     RawDet --> Convert[Convert detection schema]
     Convert --> DetDict[DET_FILES_TEST dictionary]
-    DetDict --> GTrain
     Models --> FPS[fps_points.pkl]
     FPS --> GTrain
+    GTrain --> PoseCheckpoint[Pose checkpoint]
+    DetDict --> DetEval[GDRN detected-box evaluation]
+    PoseCheckpoint --> DetEval
 ```
 
 `main.py` generates `train_pbr`; it does not create a held-out `test_pbr`
@@ -68,7 +70,7 @@ as validation.
 | `train_pbr` / `test_pbr` | BlenderProc + deliberate split step | YOLOX / GDRN registrations | Complete RGB, depth, masks and scene JSON for every image ID |
 | Dataset names | GDRNPP registration modules | Config `DATASETS.*` | Name maps to the intended filesystem root and object mapping |
 | `fps_points.pkl` | FPS preprocessing | GDRN region supervision | Generated after final mesh scaling |
-| Detection JSON | YOLOX evaluation + converter | GDRN `DET_FILES_TEST` | Dict keyed by `scene_id/im_id`, `bbox_est` in original-image `xywh` |
+| Detection JSON | YOLOX evaluation + converter | GDRN detected-box evaluation / inference | Dict keyed by `scene_id/im_id`, `bbox_est` in original-image `xywh` |
 | Checkpoint | Trainer | Resume / inference | Same model architecture, class count and compatible config |
 
 ## BOP scene files

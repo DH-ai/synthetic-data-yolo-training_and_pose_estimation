@@ -33,8 +33,9 @@ flowchart LR
     BOP --> GDRN[GDRN pose training]
     YOLOX --> Detector[Detector weights]
     Detector --> DetJSON[Converted detections]
-    DetJSON --> GDRN
     GDRN --> Pose[Pose weights]
+    DetJSON --> PoseEval[GDRN detected-box evaluation]
+    Pose --> PoseEval
     Detector --> Runtime[Fanuc Pick n Place runtime]
     Pose --> Runtime
 ```

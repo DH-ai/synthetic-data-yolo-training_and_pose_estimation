@@ -1,20 +1,21 @@
 # 06 — Train / eval GDRN
 
-Train 6D pose on `mydataset` after YOLOX (or with GT boxes for a smoke test).
+Train 6D pose on `mydataset` from BOP pose ground truth. YOLOX detections are
+needed later for detected-box evaluation / runtime, not for GDRN training.
 
 **DeepWiki:** [GDRN training](https://deepwiki.com/DH-ai/GDRNPP/5.2-gdrn-training-and-evaluation)  
 **Prerequisite:** [04_custom_dataset_mydataset.md](04_custom_dataset_mydataset.md)
 
 ```mermaid
 flowchart TD
-    Ready{Converted detections ready?}
-    Ready -->|No| GT[LOAD_DETS_TEST false and TEST_BBOX_TYPE gt]
-    Ready -->|Yes| Estimated[LOAD_DETS_TEST true and TEST_BBOX_TYPE est]
-    GT --> Train[Run main_gdrn.py]
-    Estimated --> Train
+    BOP[BOP pose ground truth] --> Train[Train GDRN]
     Train --> EGL[Online XYZ renderer]
     EGL --> Losses[Mask, XYZ, region, PM and pose losses]
     Losses --> Checkpoint[Pose checkpoint]
+    Checkpoint --> Evaluate{Evaluation box source}
+    Evaluate -->|Ground truth smoke| GT[LOAD_DETS_TEST false and TEST_BBOX_TYPE gt]
+    Evaluate -->|YOLOX detections| Estimated[LOAD_DETS_TEST true and TEST_BBOX_TYPE est]
+    Det[Converted DET_FILES_TEST] --> Estimated
 ```
 
 ## Config

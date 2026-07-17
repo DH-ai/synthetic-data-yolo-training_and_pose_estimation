@@ -79,7 +79,11 @@ bash det/yolox/tools/test_yolox.sh \
 
 This runs `main_yolox.py --eval-only` with `train.init_checkpoint=<CKPT>`.
 
-Convert the BOP-style results JSON into GDRN’s DET dict format before pose training ([04 § DET_FILES_TEST](04_custom_dataset_mydataset.md#6-det_files_test-format)).
+Convert the BOP-style results JSON into GDRN’s DET dict format before
+detected-box evaluation or runtime inference
+([04 § DET_FILES_TEST](04_custom_dataset_mydataset.md#6-det_files_test-format)).
+GDRN training itself uses BOP pose ground truth and does not require YOLOX
+detections.
 
 ## Success looks like
 

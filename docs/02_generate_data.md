@@ -19,13 +19,16 @@ Paths are relative to the **repo root** (how `main.py` resolves them):
 flowchart LR
     Blend[moved_v11.blend] --> Main[main.py]
     HDRI[HDRI environments] --> Main
-    Mesh[CAD and PLY meshes] --> Main
+    CAD[CAD geometry] --> Blend
+    CAD --> Export[Export and validate PLY]
     Camera[Intrinsics and camera pose] --> Main
+    Export --> Models[Prepared models and models_info.json]
     Main --> Randomize[Placement, lighting and material randomization]
     Randomize --> Render[BlenderProc render]
     Render --> BOP[BOP writer]
-    BOP --> Models[models and models_info.json]
     BOP --> Scenes[train_pbr scene chunks]
+    Models --> Root[output/bop data contract]
+    Scenes --> Root
 ```
 
 Object class IDs are defined in `TARGET_CLASSES` inside [`src/blenderproc_proj/main.py`](../src/blenderproc_proj/main.py):
@@ -83,8 +86,13 @@ NUM_ITERATIONS=1000 blenderproc run src/blenderproc_proj/main.py
 The BOP writer **appends** into existing chunk dirs. A crashed/partial run can leave `scene_gt_info.json` missing and the next run fails. Delete the output tree before a clean re-run:
 
 ```bash
-rm -rf src/output
+# Preserve manually prepared output/bop/models.
+rm -rf src/output/bop/train_pbr
 ```
+
+`main.py` writes scene chunks; it does not create the PLY files or
+`models_info.json`. If output cleanup must be broader, back up
+`src/output/bop/models` first and restore or regenerate it afterward.
 
 ## Run with Docker (GPU host)
 
