@@ -51,4 +51,41 @@ The ROS implementation — robot control, perception nodes, motion planning, and
 
 ## Getting Started
 
-> **TODO:** Add setup and usage instructions here — environment setup, BlenderProc scene generation, dataset export, YOLO training, and GDRNPP training/fine-tuning steps.
+### Clone with submodules
+
+```bash
+git clone --recurse-submodules https://github.com/DH-ai/synthetic-data-yolo-training_and_pose_estimation.git
+cd synthetic-data-yolo-training_and_pose_estimation
+
+# If you already cloned without submodules:
+git submodule update --init src/gdrnpp src/detectron2
+```
+
+`src/gdrnpp` is the [GDRNPP](https://github.com/DH-ai/GDRNPP) fork (YOLOX + GDRN). `src/detectron2` is Detectron2 (needed for GDRNPP builds).
+
+### Two environments
+
+| Stage | Where | What |
+|-------|--------|------|
+| **Data generation** | CPU or GPU host / Docker | BlenderProc → BOP under `src/output/bop` (or `OUTPUT_DIR_BPROC`) |
+| **Training / eval** | GPU machine, conda env `gdrnpp_env` | YOLOX then GDRN inside `src/gdrnpp` |
+
+Generation deps: see [`docker/requirements.txt`](docker/requirements.txt) and [`docs/01_setup.md`](docs/01_setup.md).  
+Training install: [`src/gdrnpp/docs/INSTALL.md`](src/gdrnpp/docs/INSTALL.md) and [`docs/03_gdrnpp_submodule.md`](docs/03_gdrnpp_submodule.md).
+
+### Docs (start here)
+
+| Goal | Guide |
+|------|--------|
+| Full setup | [`docs/01_setup.md`](docs/01_setup.md) |
+| Generate synthetic BOP data | [`docs/02_generate_data.md`](docs/02_generate_data.md) |
+| Wire custom `mydataset` into GDRNPP | [`docs/04_custom_dataset_mydataset.md`](docs/04_custom_dataset_mydataset.md) |
+| Train YOLOX / GDRN | [`docs/05_train_yolox.md`](docs/05_train_yolox.md), [`docs/06_train_gdrn.md`](docs/06_train_gdrn.md) |
+| Common failures | [`docs/07_troubleshooting.md`](docs/07_troubleshooting.md) |
+
+Index: [`docs/README.md`](docs/README.md).
+
+### Architecture wikis
+
+- [Parent DeepWiki](https://deepwiki.com/DH-ai/synthetic-data-yolo-training_and_pose_estimation/1-project-overview)
+- [GDRNPP DeepWiki](https://deepwiki.com/DH-ai/GDRNPP/1-gdrnpp-modernized-project-overview)
