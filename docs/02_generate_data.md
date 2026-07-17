@@ -11,9 +11,22 @@ Paths are relative to the **repo root** (how `main.py` resolves them):
 
 | Asset | Purpose |
 |-------|---------|
-| `.blend` scene under `blender_files/` (or as configured in `main.py`) | Table / cavity / objects |
+| `blender_files/moved_v11.blend` (or update `main.py`) | Table / cavity / objects |
 | HDRI environment maps | Lighting randomization |
 | CAD → exported PLY under the BOP `models/` tree | Mesh + `models_info.json` for BOP |
+
+```mermaid
+flowchart LR
+    Blend[moved_v11.blend] --> Main[main.py]
+    HDRI[HDRI environments] --> Main
+    Mesh[CAD and PLY meshes] --> Main
+    Camera[Intrinsics and camera pose] --> Main
+    Main --> Randomize[Placement, lighting and material randomization]
+    Randomize --> Render[BlenderProc render]
+    Render --> BOP[BOP writer]
+    BOP --> Models[models and models_info.json]
+    BOP --> Scenes[train_pbr scene chunks]
+```
 
 Object class IDs are defined in `TARGET_CLASSES` inside [`src/blenderproc_proj/main.py`](../src/blenderproc_proj/main.py):
 
@@ -26,6 +39,17 @@ TARGET_CLASSES = {
 ```
 
 Keep these IDs aligned with [`src/gdrnpp/ref/mydataset.py`](../src/gdrnpp/ref/mydataset.py) (`id2obj`) and with `obj_000001.ply` … on disk.
+
+Alignment is by numeric ID; the Blender scene match key (`heart`) does not
+need to equal the GDRN display name (`heart_shape`).
+
+```mermaid
+flowchart LR
+    Class[TARGET_CLASSES numeric id] --> BOPID[scene_gt obj_id]
+    Class --> PLY[obj_00000X.ply]
+    Class --> Ref[ref.mydataset id2obj]
+    Ref --> Label[Contiguous training label]
+```
 
 Default output directory:
 
@@ -114,6 +138,55 @@ Camera intrinsics in `main.py` / `ref/mydataset.py` are shared (`K` for 1920×12
 3. **Class alignment** — `TARGET_CLASSES` ids ↔ `ref.mydataset.id2obj` ↔ `obj_XXXXXX.ply`.
 
 4. **Image size** — rendered PNGs are 1920×1200; GDRN/YOLOX registration `height`/`width` must match (see [04](04_custom_dataset_mydataset.md), [07](07_troubleshooting.md)).
+
+5. **Mesh units and topology** — GDRN accepts triangular faces. Triangulate
+   quads/n-gons before PLY export. Confirm whether PLY coordinates are already
+   metres before choosing `vertex_scale`; the historical run used
+   `vertex_scale=0.001` on metre meshes and shrank them to roughly `10^-5` m.
+   After correcting scale, regenerate `fps_points.pkl`.
+
+## Create a held-out test split
+
+`main.py` writes `train_pbr`; both YOLOX and GDRN register
+`mydataset_pbr_test` against `output/bop/test_pbr`. Generate a separate set of
+scenes (different random seed / run) into `test_pbr`, or deliberately move a
+held-out subset there. Do not duplicate training frames and call them a test
+set.
+
+```text
+src/output/bop/
+  train_pbr/   # training scenes
+  test_pbr/    # independent evaluation scenes
+  models/
+```
+
+There is also a second YOLOX test module targeting `bop/test` +
+`test_targets.json`. The dataset factory currently checks `mydataset_pbr`
+before `mydataset_pbr_test`, so the name `mydataset_pbr_test` resolves to the
+`test_pbr` registration first. Confirm the selected registration in logs.
+
+## Dataset integrity gate
+
+Run this logical gate before a multi-hour GPU job:
+
+```mermaid
+flowchart TD
+    Scene[Generated scene] --> RGB{RGB for every image ID?}
+    RGB -->|No| Regenerate[Regenerate or repair scene]
+    RGB -->|Yes| Depth{Depth exists?}
+    Depth -->|No| Regenerate
+    Depth -->|Yes| Masks{Full and visible masks exist?}
+    Masks -->|No| Regenerate
+    Masks -->|Yes| JSON{GT, GT info and camera JSON parse?}
+    JSON -->|No| Regenerate
+    JSON -->|Yes| Boxes{Boxes and masks non-zero?}
+    Boxes -->|No| Regenerate
+    Boxes -->|Yes| Register[Register and inspect GT overlay]
+```
+
+Interrupted renders previously produced missing image IDs, masks and malformed
+JSON. The resulting `AssertionError`, `KeyError`, or `JSONDecodeError` is a
+dataset-integrity failure, not necessarily a loader bug.
 
 ## Next
 

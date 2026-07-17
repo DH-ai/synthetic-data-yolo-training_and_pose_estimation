@@ -12,6 +12,18 @@ GDRNPP lives at `src/gdrnpp` and provides YOLOX detection + GDRN 6D pose. This p
 - Python ≥ 3.6 (this guide uses **3.10** / env name `gdrnpp_env`)
 - PyTorch ≥ 1.9 + torchvision
 
+```mermaid
+flowchart LR
+    Driver[NVIDIA driver] --> CUDA[CUDA-compatible PyTorch wheel]
+    Conda[Python 3.10 gdrnpp_env] --> CUDA
+    CUDA --> Detectron2[Editable src/detectron2]
+    Detectron2 --> Dependencies[install_deps.sh]
+    Dependencies --> Compile[compile_all.sh]
+    Compile --> FPS[FPS extension]
+    Compile --> EGL[EGL renderer]
+    Compile --> Ops[CUDA and C++ ops]
+```
+
 ## Init submodule
 
 From the parent repo root:
@@ -73,6 +85,34 @@ sh scripts/compile_all.sh
 ```
 
 This builds FPS, EGL renderer (needed for `XYZ_ONLINE=True`), and related ops. If Ceres / uncertainty PnP / EGL / detectron2 build fail, follow [`troubleshoot.md`](../src/gdrnpp/troubleshoot.md) rather than inventing flags. Ubuntu 18.04 `libassimp` note: see `INSTALL.md`.
+
+## Legacy-stack compatibility incidents
+
+These are historical fixes from the AWS setup, not unconditional installation
+commands. Apply them only when the exact traceback matches:
+
+| Symptom | Historical cause / response |
+|---------|-----------------------------|
+| `pytorch_lightning.lite` missing | Lightning 2.x removed the API; the old stack used `pytorch-lightning==1.6.5.post0` |
+| `collections.Sequence` import error | Python 3.10 moved it to `collections.abc.Sequence` |
+| `np.float`, `np.int`, `np.bool` errors | Removed NumPy aliases; patch to explicit types or pin a compatible NumPy |
+| `nvcc` rejects host compiler | GCC newer than the selected CUDA toolkit supports |
+| CUDA header / Eigen compile errors | Old extension code against newer system headers; align PyTorch, CUDA and compiler versions |
+| Script expects `lib` but host uses `lib64` | Correct the detected library path for that machine |
+
+```mermaid
+flowchart TD
+    BuildFail[Extension build fails] --> Torch{PyTorch wheel matches CUDA?}
+    Torch -->|No| Align[Install a compatible PyTorch build]
+    Torch -->|Yes| Compiler{GCC supported by nvcc?}
+    Compiler -->|No| SelectGCC[Select a supported GCC and G++]
+    Compiler -->|Yes| Header{Traceback identifies legacy API or header?}
+    Header -->|Yes| Targeted[Apply the documented targeted pin or patch]
+    Header -->|No| Trouble[Follow gdrnpp troubleshoot.md]
+```
+
+Do not infer a GPU hardware fault merely from a C++/CUDA extension compile
+failure; the recorded AWS failures were toolchain skew.
 
 ## Sanity check
 
