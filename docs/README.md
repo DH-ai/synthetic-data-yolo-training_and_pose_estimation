@@ -8,7 +8,7 @@ For architecture diagrams and deep dives, use the DeepWiki wikis (linked from ea
 |-------|--------|
 | [01_setup.md](01_setup.md) | Clone, submodules, generation vs training environments |
 | [02_generate_data.md](02_generate_data.md) | BlenderProc assets, run, BOP output, PLY normals |
-| [03_gdrnpp_submodule.md](03_gdrnpp_submodule.md) | Init / install / compile GDRNPP |
+| [03_gdrnpp_submodule.md](03_gdrnpp_submodule.md) | Init submodule; **CUDA / PyTorch / detectron2** install + compile |
 | [04_custom_dataset_mydataset.md](04_custom_dataset_mydataset.md) | **Main how-to:** `ref/`, registration, configs, DET files |
 | [05_train_yolox.md](05_train_yolox.md) | YOLOX train / eval |
 | [06_train_gdrn.md](06_train_gdrn.md) | GDRN train / eval from hb template |

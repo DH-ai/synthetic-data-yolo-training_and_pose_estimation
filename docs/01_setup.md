@@ -49,13 +49,13 @@ Optional Docker path (GPU host):
 
 See [02_generate_data.md](02_generate_data.md).
 
-## Environment B — training (GPU + CUDA)
+## Environment B — training (GPU + CUDA + detectron2)
 
-Train on a GPU host. **Do not install PyTorch / CUDA / detectron2 from these parent docs** — use the submodule’s install guide so versions stay in one place:
+Train on a machine with an NVIDIA GPU. Full steps (PyTorch wheel for your CUDA, detectron2 from `src/detectron2`, `install_deps.sh`, `compile_all.sh`):
 
-1. Init submodules (above), then follow [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md)
-2. Build failures: [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md)
-3. Parent-specific notes (paths, `mydataset`): [03_gdrnpp_submodule.md](03_gdrnpp_submodule.md)
+→ **[03_gdrnpp_submodule.md](03_gdrnpp_submodule.md)**
+
+Also: [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md), [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md).
 
 Point `ref/mydataset.py` `root_dir` at the parent `src/` that contains `output/bop` (see [04_custom_dataset_mydataset.md](04_custom_dataset_mydataset.md)).
 
