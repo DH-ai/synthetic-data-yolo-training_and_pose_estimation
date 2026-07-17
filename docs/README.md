@@ -2,7 +2,26 @@
 
 Command-first how-tos for this repository: synthetic BOP data (BlenderProc) → YOLOX detection → GDRN 6D pose (GDRNPP submodule).
 
-For architecture diagrams and deep dives, use the DeepWiki wikis (linked from each page). This folder focuses on runnable steps and pitfalls discovered while wiring a custom `mydataset`.
+This folder combines runnable steps, local architecture diagrams, and
+session-proven pitfalls discovered while wiring a custom `mydataset`. DeepWiki
+remains the deeper code-navigation reference.
+
+```mermaid
+flowchart LR
+    Setup[01 Setup] --> Generate[02 Generate data]
+    Setup --> Install[03 GDRNPP install]
+    Generate --> Dataset[04 Wire mydataset]
+    Install --> Dataset
+    Dataset --> YOLOX[05 Train YOLOX]
+    Dataset --> GDRN[06 Train GDRN]
+    YOLOX --> GDRN
+    Troubleshoot[07 Troubleshooting] -.-> Generate
+    Troubleshoot -.-> Dataset
+    Troubleshoot -.-> YOLOX
+    Troubleshoot -.-> GDRN
+    Architecture[08 Architecture] -.-> Setup
+    Architecture -.-> Dataset
+```
 
 | Guide | Topic |
 |-------|--------|
@@ -13,6 +32,7 @@ For architecture diagrams and deep dives, use the DeepWiki wikis (linked from ea
 | [05_train_yolox.md](05_train_yolox.md) | YOLOX train / eval |
 | [06_train_gdrn.md](06_train_gdrn.md) | GDRN train / eval from hb template |
 | [07_troubleshooting.md](07_troubleshooting.md) | Session-proven errors and fixes |
+| [08_architecture.md](08_architecture.md) | System, data, artifact and model contracts |
 
 ## Architecture wikis (external)
 

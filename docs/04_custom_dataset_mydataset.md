@@ -4,6 +4,19 @@ End-to-end wiring of BlenderProc BOP output into GDRNPP: `ref/`, registration mo
 
 **DeepWiki:** [Custom / BOP datasets](https://deepwiki.com/DH-ai/GDRNPP/4-datasets-and-bop) · [mydataset](https://deepwiki.com/DH-ai/GDRNPP/4.1-custom-dataset-mydataset) · [Configs](https://deepwiki.com/DH-ai/GDRNPP/3-configuration-system)
 
+```mermaid
+flowchart LR
+    Disk[output/bop models and splits] --> Ref[ref/mydataset.py]
+    Ref --> GReg[GDRN mydataset_pbr.py]
+    Ref --> YReg[YOLOX mydataset_pbr.py]
+    GReg --> GConfig[convnext_mydataset.py]
+    YReg --> YConfig[yolox mydataset config]
+    YConfig --> YTrain[YOLOX]
+    YTrain --> Det[Converted DET JSON]
+    Det --> GConfig
+    GConfig --> GTrain[GDRN]
+```
+
 ## Expected on-disk layout
 
 Generation writes (default):
@@ -15,6 +28,10 @@ Generation writes (default):
 ```
 
 That matches what `mydataset_pbr` registration expects under `.../output/bop/...`. You do **not** need to copy into `src/gdrnpp/datasets/BOP_DATASETS/`.
+
+Generation only creates `train_pbr`. Create an independent `test_pbr` before
+using the committed `mydataset_pbr_test` registration; see
+[02_generate_data.md](02_generate_data.md#create-a-held-out-test-split).
 
 ## 1. `ref/mydataset.py`
 
@@ -51,7 +68,9 @@ Names in `id2obj` must match the object name lists used in registration (`objs=`
 
 ### Required fields for EGL / `XYZ_ONLINE=True`
 
-Mirror the pattern in [`src/gdrnpp/ref/hb.py`](../src/gdrnpp/ref/hb.py). If these are missing, training fails when the EGL renderer starts (e.g. `AttributeError: ... no attribute 'texture_paths'`).
+The current `ref/mydataset.py` includes these fields. Verify them rather than
+adding duplicates. Older checkouts failed at EGL startup with
+`AttributeError: ... no attribute 'texture_paths'`.
 
 Add (adjust `vertex_scale` / z-range to your mesh units):
 
@@ -59,7 +78,7 @@ Add (adjust `vertex_scale` / z-range to your mesh units):
 model_paths = [osp.join(model_dir, "obj_{:06d}.ply").format(_id) for _id in id2obj]
 texture_paths = None
 model_colors = [((i + 1) * 5, (i + 1) * 5, (i + 1) * 5) for i in range(obj_num)]
-vertex_scale = 0.001   # or 1.0 if your PLYs are already in meters
+vertex_scale = 1.0     # if PLY coordinates are already metres
 zNear = 0.25
 zFar = 6.0
 depth_factor = 1000.0
@@ -72,6 +91,24 @@ def get_fps_points():
 
 Generate `fps_points.pkl` with the dataset’s FPS tool (hb example: `core/gdrn_modeling/tools/hb/hb_1_compute_fps.py`; use/adapt the mydataset equivalent if present on your branch).
 
+The current file attempts to call the hb FPS helper when the pickle is absent.
+That fallback is path-sensitive; verify its output per object. A historical
+run found that Blender had already exported metres while
+`vertex_scale=0.001` was still applied. Geometry shrank to roughly `10^-5` m.
+After correcting scale, regenerate `fps_points.pkl`; the full dataset cache
+does not need mesh data regenerated, but stale model caches should be removed.
+
+```mermaid
+flowchart TD
+    PLY[PLY coordinates] --> Units{Already metres?}
+    Units -->|Yes| ScaleOne[vertex_scale 1.0]
+    Units -->|No, millimetres| ScaleMilli[vertex_scale 0.001]
+    ScaleOne --> Dimensions[Verify extents and diameter]
+    ScaleMilli --> Dimensions
+    Dimensions --> FPS[Regenerate fps_points.pkl]
+    FPS --> Renderer[EGL and region supervision]
+```
+
 ## 2. Registration modules (filesystem paths live here)
 
 | Role | File |
@@ -82,18 +119,24 @@ Generate `fps_points.pkl` with the dataset’s FPS tool (hb example: `core/gdrn_
 
 Config `DATASETS.TRAIN = ["mydataset_pbr_train"]` only selects the **name** registered in these modules.
 
-### Known bugs to fix in GDRN `mydataset_pbr.py`
+### Current and historical registration pitfalls
 
 Check your checkout for these (they have bitten real runs):
 
 | Symptom / bug | Fix |
 |---------------|-----|
-| RGB not found / empty dataset | BlenderProc writes `rgb/{:06d}.png`. GDRN loader may still say `.jpg` — change to `.png`. |
-| `AttributeError` / wrong ref module | Typo `ref.my_dataset` → `ref.mydataset` (e.g. in `model_paths` construction). |
+| RGB not found / empty dataset | Current loader uses `.png`; older checkouts used `.jpg`. Verify against BlenderProc output. |
+| `AttributeError` / wrong ref module | Current GDRN loader still contains `ref.my_dataset` in model loading; correct form is `ref.mydataset`. |
 | Bad crops / empty instances | `height`/`width` in the registered dicts must be **1920×1200** (real PNG size), not 960×600. |
 | Stale caches | After path/dim fixes, delete `.cache` dataset dict pickles under the configured `cache_dir`. |
+| Missing test root | `mydataset_pbr_test` points to `bop/test_pbr`, which generation does not create automatically. |
+| Inconsistent test module | A second YOLOX test module targets `bop/test`; factory ordering resolves the shared name from `mydataset_pbr.py` first. |
 
-YOLOX’s `mydataset_pbr.py` already uses `.png` but may still declare `height=600, width=960`. Update those to `1200` / `1920`. The YOLOX `load_anno` path also has a fix that reads **actual** image size via PIL (see [07](07_troubleshooting.md)); still keep declared dims correct.
+YOLOX’s current `mydataset_pbr.py` uses `.png` but still declares
+`height=600, width=960`. Update those values in the training checkout to
+`1200` / `1920`. `Base_DatasetFromList.load_anno` now reads **actual** image
+size via PIL (see [07](07_troubleshooting.md)); declared metadata should still
+be correct for every other consumer.
 
 Also verify `PROJ_ROOT` / `DATASETS_ROOT` at the top of the registration file point at a directory whose `output/bop` (or equivalent) exists on your machine.
 
@@ -123,13 +166,17 @@ Key fields:
 
 Train/eval commands: [05_train_yolox.md](05_train_yolox.md).
 
-## 5. GDRN config (copy from hb template)
+## 5. GDRN config
 
-There may not be a committed `configs/gdrn/mydataset_pbr/` yet. Start from:
+The current submodule includes:
+
+[`configs/gdrn/mydataset_pbr/convnext_mydataset.py`](../src/gdrnpp/configs/gdrn/mydataset_pbr/convnext_mydataset.py)
+
+It was adapted from:
 
 [`configs/gdrn/hb_pbr/convnext_a6_AugCosyAAEGray_BG05_mlL1_DMask_amodalClipBox_classAware_hb.py`](../src/gdrnpp/configs/gdrn/hb_pbr/convnext_a6_AugCosyAAEGray_BG05_mlL1_DMask_amodalClipBox_classAware_hb.py)
 
-Copy to e.g. `configs/gdrn/mydataset_pbr/convnext_..._mydataset.py` and change:
+Review these fields before every run:
 
 | Field | mydataset value |
 |-------|-----------------|
@@ -141,6 +188,11 @@ Copy to e.g. `configs/gdrn/mydataset_pbr/convnext_..._mydataset.py` and change:
 | `SOLVER.IMS_PER_BATCH` | fit GPU memory (hb uses 48; lower for 1920×1200) |
 | `DATASETS.DET_FILES_TEST` | path to **converted** detections JSON (below) |
 | `MODEL.LOAD_DETS_TEST` | `True` when using DET files |
+
+The committed config currently has `LOAD_DETS_TEST=False` and
+`TEST_BBOX_TYPE="gt"`, so its hb `DET_FILES_TEST` path is inactive during the
+GT-box smoke path. **Do not enable estimated boxes until that hb path is
+replaced with converted mydataset detections.**
 
 ### Smoke test without YOLOX boxes
 
@@ -182,14 +234,26 @@ Reference converter pattern: [`core/gdrn_modeling/tools/ycbv/convert_det_to_our_
 
 More detail: [`src/gdrnpp/docs/DATA_DETECTION_POSE_ARCHITECTURE_AUDIT.md`](../src/gdrnpp/docs/DATA_DETECTION_POSE_ARCHITECTURE_AUDIT.md).
 
+```mermaid
+flowchart LR
+    YOLOX[YOLOX evaluation] --> Flat[Flat result list]
+    Flat --> Key[Combine scene_id and image_id]
+    Key --> Rename[category_id to obj_id; bbox to bbox_est]
+    Rename --> Dict[Dictionary keyed by scene_id/im_id]
+    Dict --> DetFiles[GDRN DET_FILES_TEST]
+```
+
 ## Checklist before first GDRN train
 
 - [ ] `ref/mydataset.py` `root_dir` → correct `src/`
+- [ ] GDRN and YOLOX `PROJ_ROOT` values resolve to the same `output/bop`
 - [ ] `texture_paths`, `model_paths`, `vertex_scale`, `zNear`/`zFar`, `get_fps_points()` present
-- [ ] RGB extension `.png`; `ref.mydataset` typo fixed
+- [ ] RGB extension `.png`; current `ref.my_dataset` typo fixed in training checkout
 - [ ] height/width 1200×1920 in GDRN + YOLOX registration
 - [ ] PLY normals written; `models_info.json` has diameters
+- [ ] PLY faces triangulated; parser supports the exported PLY property types
 - [ ] `fps_points.pkl` exists under `models/`
+- [ ] independent `test_pbr` exists before evaluation
 - [ ] Config `NUM_CLASSES=3`, dataset names match registration
 - [ ] `DET_FILES_TEST` converted **or** GT-bbox smoke path enabled
 

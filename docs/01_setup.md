@@ -24,6 +24,21 @@ Layout that matters:
 | `src/detectron2/` | Detectron2 (submodule; GDRNPP dependency) |
 | `src/output/bop/` | Default BOP output (gitignored) |
 
+```mermaid
+flowchart LR
+    subgraph generationEnv [Generation environment]
+        Venv[Python venv] --> BlenderProc
+        Docker[Optional Docker image] --> BlenderProc
+        BlenderProc --> BOP[src/output/bop]
+    end
+    subgraph trainingEnv [GPU training environment]
+        Conda[gdrnpp_env] --> PyTorch[CUDA PyTorch]
+        PyTorch --> Detectron2[src/detectron2]
+        Detectron2 --> GDRNPP[src/gdrnpp]
+        BOP --> GDRNPP
+    end
+```
+
 ## Environment A — data generation (CPU or GPU)
 
 Used for BlenderProc only. Does **not** need CUDA for a smoke test (software EGL works; slow).
@@ -58,6 +73,11 @@ Train on a machine with an NVIDIA GPU. Full steps (PyTorch wheel for your CUDA, 
 Also: [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md), [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md).
 
 Point `ref/mydataset.py` `root_dir` at the parent `src/` that contains `output/bop` (see [04_custom_dataset_mydataset.md](04_custom_dataset_mydataset.md)).
+
+The current GDRNPP custom-dataset files also contain machine-specific
+`PROJ_ROOT` values. Treat the data root as one contract: update every
+`mydataset` registration to the same parent `src/`, then clear stale dataset
+caches. See [08_architecture.md](08_architecture.md#configuration-and-path-resolution).
 
 ## Quick sanity checks
 
