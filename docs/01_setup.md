@@ -51,13 +51,11 @@ See [02_generate_data.md](02_generate_data.md).
 
 ## Environment B — training (GPU + CUDA)
 
-Train on a machine with NVIDIA GPUs. Typical setup: conda env named `gdrnpp_env`, Python 3.10, matching PyTorch/CUDA.
+Train on a GPU host. **Do not install PyTorch / CUDA / detectron2 from these parent docs** — use the submodule’s install guide so versions stay in one place:
 
-Follow:
-
-1. [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md) — PyTorch, detectron2, deps
-2. [03_gdrnpp_submodule.md](03_gdrnpp_submodule.md) — `install_deps.sh` / `compile_all.sh`
-3. [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md) — Ceres / CUDA / detectron2 failures
+1. Init submodules (above), then follow [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md)
+2. Build failures: [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md)
+3. Parent-specific notes (paths, `mydataset`): [03_gdrnpp_submodule.md](03_gdrnpp_submodule.md)
 
 Point `ref/mydataset.py` `root_dir` at the parent `src/` that contains `output/bop` (see [04_custom_dataset_mydataset.md](04_custom_dataset_mydataset.md)).
 

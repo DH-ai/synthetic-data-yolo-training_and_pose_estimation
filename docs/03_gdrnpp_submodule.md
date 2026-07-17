@@ -1,10 +1,8 @@
-# 03 — GDRNPP submodule (install & compile)
+# 03 — GDRNPP submodule
 
-GDRNPP lives at `src/gdrnpp` and provides YOLOX detection + GDRN 6D pose. This page is install-only; dataset wiring is [04](04_custom_dataset_mydataset.md).
+GDRNPP lives at `src/gdrnpp` and provides YOLOX detection + GDRN 6D pose. Dataset wiring is [04](04_custom_dataset_mydataset.md).
 
-**DeepWiki:** [GDRNPP overview](https://deepwiki.com/DH-ai/GDRNPP/1-gdrnpp-modernized-project-overview) · [Installation](https://deepwiki.com/DH-ai/GDRNPP/1.1-installation-and-environment-setup)  
-**Canonical install doc:** [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md)  
-**Build failures:** [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md)
+**DeepWiki:** [GDRNPP overview](https://deepwiki.com/DH-ai/GDRNPP/1-gdrnpp-modernized-project-overview) · [Installation](https://deepwiki.com/DH-ai/GDRNPP/1.1-installation-and-environment-setup)
 
 ## Init submodule
 
@@ -16,52 +14,19 @@ git submodule update --init src/gdrnpp src/detectron2
 
 Confirm `src/gdrnpp` is not empty (`ls src/gdrnpp/configs`).
 
-## Create the training env
+## Install (do not duplicate here)
 
-On a **GPU** host (CUDA matching your PyTorch wheel):
+PyTorch, CUDA matching, detectron2, `scripts/install_deps.sh`, and `scripts/compile_all.sh` are documented in the submodule — follow those, not a second copy in this parent repo:
 
-```bash
-conda create -n gdrnpp_env python=3.10 -y
-conda activate gdrnpp_env
-# Install PyTorch + torchvision for your CUDA version (pytorch.org)
-```
+1. [`src/gdrnpp/docs/INSTALL.md`](../src/gdrnpp/docs/INSTALL.md) — full install
+2. [`src/gdrnpp/troubleshoot.md`](../src/gdrnpp/troubleshoot.md) — Ceres / CUDA / detectron2 / EGL build failures
 
-Install Detectron2 from the sibling submodule (or as documented in `INSTALL.md`):
+Typical env name used elsewhere in these docs: `gdrnpp_env` on a GPU host.
 
-```bash
-cd src/detectron2
-pip install -e .
-cd ../gdrnpp
-```
-
-## System + Python deps
-
-From `src/gdrnpp`:
-
-```bash
-# apt + python extras (needs sudo for apt section)
-sh scripts/install_deps.sh
-
-# Python-only if you are not a sudoer:
-sh scripts/install_deps.sh python
-```
-
-## Compile CUDA / C++ extensions
-
-```bash
-cd src/gdrnpp
-sh scripts/compile_all.sh
-```
-
-If Ceres / uncertainty PnP / EGL renderer fail, follow [`troubleshoot.md`](../src/gdrnpp/troubleshoot.md) rather than inventing flags.
-
-Useful pieces compiled here include FPS sampling, EGL renderer (needed for `XYZ_ONLINE=True` in GDRN), and related CUDA ops.
-
-## Sanity check
+After install, a quick check from `src/gdrnpp`:
 
 ```bash
 conda activate gdrnpp_env
-cd src/gdrnpp
 python -c "import torch, detectron2; print(torch.cuda.is_available())"
 python -c "import ref; print(ref.mydataset.obj_num, ref.mydataset.width, ref.mydataset.height)"
 ```
